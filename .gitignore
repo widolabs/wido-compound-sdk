@@ -1,0 +1,8 @@
+node_modules
+dist
+distlib
+.parcel-cache
+yarn-error.log
+parcel-bundle-reports
+coverage
+docs

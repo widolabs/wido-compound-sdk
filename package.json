@@ -1,0 +1,56 @@
+{
+  "name": "wido-compound-sdk",
+  "license": "UNLICENSED",
+  "version": "0.0.1",
+  "files": [
+    "dist",
+    "src",
+    "docs"
+  ],
+  "main": "dist/wido.js",
+  "module": "dist/wido.mjs",
+  "typings": "dist/wido.d.ts",
+  "scripts": {
+    "start": "concurrently 'vite build --watch' 'yarn types --watch --preserveWatchOutput' --names 'vite,tsc' -c 'green,blue'",
+    "build": "vite build && yarn types",
+    "types": "tsc --project tsconfig.prod.json",
+    "check-types": "tsc --noEmit",
+    "prepublish": "yarn build && yarn docs",
+    "pack": "yarn pack",
+    "lint": "eslint --ext='ts' src",
+    "lint:fix": "yarn lint -- --fix",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "coverage": "vitest run --coverage",
+    "docs": "typedoc --out docs src/wido.ts --excludePrivate --excludeInternal  --readme none --sort source-order",
+    "docs:watch": "yarn docs --watch"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.30.0",
+    "@typescript-eslint/parser": "^5.30.0",
+    "@vitest/coverage-c8": "^0.24.3",
+    "@vitest/ui": "^0.24.3",
+    "concurrently": "^7.4.0",
+    "cross-fetch": "^3.1.5",
+    "eslint": "^8.18.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.1.0",
+    "ethers": "5.7.2",
+    "prettier": "^2.7.1",
+    "typedoc": "^0.23.2",
+    "typescript": "^4.5.4",
+    "vite": "^2.9.15",
+    "vitest": "^0.24.3"
+  },
+  "dependencies": {},
+  "keywords": [
+    "wido",
+    "zap",
+    "zaps",
+    "ethereum",
+    "evm",
+    "crypto",
+    "sdk",
+    "typescript"
+  ]
+}

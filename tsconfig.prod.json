@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // overrides
+    "noEmit": false,
+    "isolatedModules": false,
+    // new configs
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "outFile": "dist/wido.d.ts",
+    "declarationMap": true
+  },
+  "exclude": ["test"]
+}
