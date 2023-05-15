@@ -1,5 +1,5 @@
 // Methods
-// TBD
+export * from "./supportedCollaterals"
 
 // Types
-export * from "./types"
+export * from "./types/index"

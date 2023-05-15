@@ -26,6 +26,7 @@
     "docs:watch": "yarn docs --watch"
   },
   "devDependencies": {
+    "@0xsequence/multicall": "^0.43.27",
     "@typescript-eslint/eslint-plugin": "^5.30.0",
     "@typescript-eslint/parser": "^5.30.0",
     "@vitest/coverage-c8": "^0.24.3",
