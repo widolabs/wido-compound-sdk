@@ -22,11 +22,12 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
-    "docs": "typedoc --out docs src/wido.ts --excludePrivate --excludeInternal  --readme none --sort source-order",
+    "docs": "typedoc --out docs src/index.ts --excludePrivate --excludeInternal  --readme none --sort source-order",
     "docs:watch": "yarn docs --watch"
   },
   "devDependencies": {
     "@0xsequence/multicall": "^0.43.27",
+    "@compound-finance/compound-js": "^0.6.0",
     "@typescript-eslint/eslint-plugin": "^5.30.0",
     "@typescript-eslint/parser": "^5.30.0",
     "@vitest/coverage-c8": "^0.24.3",

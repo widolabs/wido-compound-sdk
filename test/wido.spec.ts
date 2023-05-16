@@ -1,12 +1,10 @@
-import * as wido from "../src/wido"
+import * as wido from "../src"
 import { it, expect } from "vitest"
 
 it("should have named exports", () => {
   expect(Object.keys(wido)).toMatchInlineSnapshot(`
     [
-      "getSupportedCollaterals",
-      "Chain",
-      "supportedChains",
+      "Wido",
     ]
   `)
 })

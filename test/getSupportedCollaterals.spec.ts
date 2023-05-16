@@ -1,13 +1,11 @@
 import { it, expect } from "vitest"
-import { getSupportedCollaterals } from '../src/supportedCollaterals';
-import { Chain } from '../src/types';
+import { Wido } from '../src';
+import { getWallet } from './helpers';
 
 
 it("should pass", async () => {
-  const supportedAssets = await getSupportedCollaterals(
-    "0xCb005d849F384b64838aAD885d5Ff150fc8B7904",
-    Chain.MAINNET
-  );
+  const wido = new Wido(getWallet())
+  const supportedAssets = await wido.getSupportedCollaterals("mainnet_usdc");
 
   expect(supportedAssets.length).toBeGreaterThanOrEqual(5);
 
