@@ -146,5 +146,66 @@ export const Comet_ABI = [
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "asset",
+        "type": "address"
+      }
+    ],
+    "name": "getAssetInfoByAddress",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "offset",
+            "type": "uint8"
+          },
+          {
+            "internalType": "address",
+            "name": "asset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "priceFeed",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "scale",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "borrowCollateralFactor",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "liquidateCollateralFactor",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "liquidationFactor",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint128",
+            "name": "supplyCap",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct CometCore.AssetInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

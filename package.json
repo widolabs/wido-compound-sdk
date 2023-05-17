@@ -42,7 +42,8 @@
     "typedoc": "^0.23.2",
     "typescript": "^4.5.4",
     "vite": "^2.9.15",
-    "vitest": "^0.24.3"
+    "vitest": "^0.24.3",
+    "wido": "^0.2.8"
   },
   "dependencies": {},
   "keywords": [

@@ -13,7 +13,7 @@ it("should pass", async () => {
 
   expect(userCollaterals.length).toBeGreaterThanOrEqual(5);
 
-  for (const asset of userCollaterals) {
-    expect(asset).toEqual(BigNumber.from(0));
+  for (const {balance} of userCollaterals) {
+    expect(balance).toEqual(BigNumber.from(0));
   }
 })

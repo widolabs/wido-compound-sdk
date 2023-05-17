@@ -9,7 +9,9 @@ import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
 import { sign } from './utils/EIP712';
-import { getChainId, getCometAddress, getCometContract } from './utils';
+import { getChainId, getCometAddress, getCometContract, pickAsset } from './utils';
+import { quote, QuoteRequest, useLocalApi } from 'wido';
+import { Collaterals, CollateralSwapRouteResponse } from './types';
 
 export class Wido {
   private readonly wallet: Wallet;
@@ -46,7 +48,7 @@ export class Wido {
    * @param user
    * @param comet
    */
-  async getUserCollaterals(user: string, comet: string): Promise<string[]> {
+  async getUserCollaterals(user: string, comet: string): Promise<Collaterals> {
     const collaterals = await this.getSupportedCollaterals(comet)
     const contract = getCometContract(comet, this.wallet.provider);
 
@@ -56,8 +58,53 @@ export class Wido {
 
     return await Promise.all(calls)
       .then(results => {
-        return results.map(r => r.balance)
+        return results.map((result, index) => {
+          return {
+            asset: collaterals[index],
+            balance: result.balance
+          }
+        })
       })
+  }
+
+  /**
+   * Quotes the possible outcome of the collateral swap
+   * @param comet
+   * @param fromCollateral
+   * @param toCollateral
+   */
+  async getCollateralSwapRoute(
+    comet: string,
+    fromCollateral: string,
+    toCollateral: string
+  ): Promise<CollateralSwapRouteResponse> {
+    const chainId = getChainId(comet);
+    const userAddress = await this.getUserAddress();
+    const collaterals = await this.getUserCollaterals(userAddress, comet);
+
+    const fromAsset = pickAsset(collaterals, fromCollateral);
+    const toAsset = pickAsset(collaterals, toCollateral);
+
+    const quoteRequest: QuoteRequest = {
+      fromChainId: chainId,
+      fromToken: fromAsset.asset.toString(),
+      toChainId: chainId,
+      toToken: toAsset.asset.toString(),
+      amount: fromAsset.balance.toString(),
+      user: userAddress,
+      recipient: userAddress,
+    }
+
+    useLocalApi(); // REMOVE
+    const quoteResponse = await quote(quoteRequest);
+
+    const supported = quoteResponse.isSupported;
+    const toAmount = supported ? String(quoteResponse.minToTokenAmount) : "0";
+
+    return {
+      isSupported: supported,
+      toCollateralAmount: toAmount
+    }
   }
 
   /**
@@ -98,11 +145,7 @@ export class Wido {
     allowSignature: Signature,
     revokeSignature: Signature
   }> {
-    let userAddress = this.wallet.address;
-
-    if (!userAddress && this.wallet.getAddress) {
-      userAddress = await this.wallet.getAddress();
-    }
+    const userAddress = await this.getUserAddress()
 
     const contract = new ethers.Contract(
       cometAddress,
@@ -215,11 +258,20 @@ export class Wido {
     return await sign(domain, primaryType, message, types, this.wallet);
   }
 
+  private async getUserAddress(): Promise<string> {
+    let userAddress = this.wallet.address;
+
+    if (!userAddress && this.wallet.getAddress) {
+      userAddress = await this.wallet.getAddress();
+    }
+
+    return userAddress;
+  }
+
   private static validateComet(comet: string) {
     const existingDeployments = this.getDeployments()
     if (!existingDeployments.includes(comet)) {
       throw new Error("Comet not supported");
     }
   }
-
 }
