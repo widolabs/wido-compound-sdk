@@ -35,13 +35,13 @@ export class Wido {
     Wido.validateComet(comet);
 
     const contract = getCometContract(comet, this.wallet.provider);
-    const numAssets = (await contract.functions.numAssets())[0];
+    const numAssets = await contract.callStatic.numAssets();
     const calls = [...Array(numAssets).keys()]
-      .map(i => contract.functions.getAssetInfo(i));
+      .map(i => contract.callStatic.getAssetInfo(i));
 
     return await Promise.all(calls)
       .then(assets => {
-        return assets.map(asset => asset[0].asset)
+        return assets.map(asset => asset.asset)
       })
   }
 
@@ -57,7 +57,7 @@ export class Wido {
     const contract = getCometContract(comet, this.wallet.provider);
 
     const calls = collaterals.map(collateral => {
-      return contract.functions.userCollateral(user, collateral);
+      return contract.callStatic.userCollateral(user, collateral);
     })
 
     return await Promise.all(calls)
@@ -197,9 +197,9 @@ export class Wido {
     );
 
     const results = await Promise.all([
-      contract.functions.userNonce(userAddress),
-      contract.functions.name(),
-      contract.functions.version(),
+      contract.callStatic.userNonce(userAddress),
+      contract.callStatic.name(),
+      contract.callStatic.version(),
     ]);
 
     let nonce = +results[0];

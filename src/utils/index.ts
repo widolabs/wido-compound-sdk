@@ -35,7 +35,7 @@ export function getWidoContract(chainId: number, signer: Wallet): Contract {
 }
 
 export async function getAssetInfoByAddress(contract: Contract, address: string): Promise<AssetInfo> {
-  return await contract.functions.getAssetInfoByAddress(address);
+  return await contract.callStatic.getAssetInfoByAddress(address);
 }
 
 export function pickAsset(collaterals: Collaterals, address: string): Collateral {
