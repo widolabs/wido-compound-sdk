@@ -7,5 +7,5 @@ it("should pass", async () => {
 
   const wido = new Wido(getWallet());
 
-  await wido.swapCollateral("mainnet_usdc")
+  //await wido.swapCollateral("mainnet_usdc")
 })

@@ -1,13 +1,19 @@
 import { BigNumber } from 'ethers';
 
 export interface Collateral {
-  asset: string,
+  address: string,
   balance: BigNumber
 }
 
 export type Collaterals = Collateral[]
 
-export interface CollateralSwapRouteResponse {
+export interface CollateralSwapRoute {
   isSupported: boolean
+  fromCollateral: string
+  fromCollateralAmount: string
+  toCollateral: string
   toCollateralAmount: string
+  tokenManager: string
+  to?: string
+  data?: string
 }

@@ -1,4 +1,4 @@
-import { ethers, Wallet } from 'ethers';
+import { ethers, Wallet, ContractReceipt } from 'ethers';
 import {
   AllowSignatureMessage,
   AllowTypes,
@@ -9,9 +9,9 @@ import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
 import { sign } from './utils/EIP712';
-import { getChainId, getCometAddress, getCometContract, pickAsset } from './utils';
-import { quote, QuoteRequest, useLocalApi } from 'wido';
-import { Collaterals, CollateralSwapRouteResponse } from './types';
+import { getChainId, getCometAddress, getCometContract, getWidoContract, pickAsset } from './utils';
+import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
+import { Collaterals, CollateralSwapRoute } from './types';
 
 export class Wido {
   private readonly wallet: Wallet;
@@ -32,6 +32,8 @@ export class Wido {
    * @param comet
    */
   async getSupportedCollaterals(comet: string): Promise<string[]> {
+    Wido.validateComet(comet);
+
     const contract = getCometContract(comet, this.wallet.provider);
     const numAssets = (await contract.functions.numAssets())[0];
     const calls = [...Array(numAssets).keys()]
@@ -49,6 +51,8 @@ export class Wido {
    * @param comet
    */
   async getUserCollaterals(user: string, comet: string): Promise<Collaterals> {
+    Wido.validateComet(comet);
+
     const collaterals = await this.getSupportedCollaterals(comet)
     const contract = getCometContract(comet, this.wallet.provider);
 
@@ -60,7 +64,7 @@ export class Wido {
       .then(results => {
         return results.map((result, index) => {
           return {
-            asset: collaterals[index],
+            address: collaterals[index],
             balance: result.balance
           }
         })
@@ -77,7 +81,9 @@ export class Wido {
     comet: string,
     fromCollateral: string,
     toCollateral: string
-  ): Promise<CollateralSwapRouteResponse> {
+  ): Promise<CollateralSwapRoute> {
+    Wido.validateComet(comet);
+
     const chainId = getChainId(comet);
     const userAddress = await this.getUserAddress();
     const collaterals = await this.getUserCollaterals(userAddress, comet);
@@ -87,9 +93,9 @@ export class Wido {
 
     const quoteRequest: QuoteRequest = {
       fromChainId: chainId,
-      fromToken: fromAsset.asset.toString(),
+      fromToken: fromAsset.address,
       toChainId: chainId,
-      toToken: toAsset.asset.toString(),
+      toToken: toAsset.address,
       amount: fromAsset.balance.toString(),
       user: userAddress,
       recipient: userAddress,
@@ -97,35 +103,72 @@ export class Wido {
 
     useLocalApi(); // REMOVE
     const quoteResponse = await quote(quoteRequest);
+    const tokenManager = await getWidoSpender({
+      chainId: chainId,
+      fromToken: fromAsset.address,
+      toChainId: chainId,
+      toToken: toAsset.address
+    })
 
     const supported = quoteResponse.isSupported;
     const toAmount = supported ? String(quoteResponse.minToTokenAmount) : "0";
 
     return {
       isSupported: supported,
+      to: quoteResponse.to,
+      data: quoteResponse.data,
+      tokenManager: tokenManager,
+      fromCollateral: fromAsset.address,
+      fromCollateralAmount: fromAsset.balance.toString(),
+      toCollateral: toAsset.address,
       toCollateralAmount: toAmount
     }
   }
 
   /**
-   *
+   * Executes a collateral swap on a Comet given an existing quote
    * @param comet
+   * @param swapQuote
    */
-  async swapCollateral(comet: string): Promise<void> {
+  async swapCollateral(
+    comet: string,
+    swapQuote: CollateralSwapRoute
+  ): Promise<ContractReceipt> {
     Wido.validateComet(comet);
 
     const chainId = getChainId(comet);
     const cometAddress = getCometAddress(comet);
-    const widoRouter = "0xCb005d849F384b64838aAD885d5Ff150fc8B7904";
+    const widoCollateralSwapContract = getWidoContract(chainId, this.wallet);
 
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
       cometAddress,
-      widoRouter,
+      widoCollateralSwapContract.address,
     );
 
+    const existingCollateral = {
+      addr: swapQuote.fromCollateral,
+      amount: swapQuote.fromCollateralAmount
+    }
+    const finalCollateral = {
+      addr: swapQuote.toCollateral,
+      amount: swapQuote.toCollateralAmount
+    }
+    const sigs = {
+      allow: allowSignature,
+      revoke: revokeSignature
+    }
 
-    // send both sigs plus order to Wido
+    const tx = await widoCollateralSwapContract.functions.onFlashLoan(
+      existingCollateral,
+      finalCollateral,
+      sigs,
+      swapQuote.to,
+      swapQuote.tokenManager,
+      swapQuote.data,
+    );
+
+    return tx.wait();
   }
 
   /**
