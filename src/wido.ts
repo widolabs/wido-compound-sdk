@@ -88,14 +88,12 @@ export class Wido {
    * @param chainId
    * @param cometAddress
    * @param manager
-   * @param expiry
    * @private
    */
   private async createSignatures(
     chainId: number,
     cometAddress: string,
     manager: string,
-    expiry = 10e9
   ): Promise<{
     allowSignature: Signature,
     revokeSignature: Signature
@@ -129,13 +127,10 @@ export class Wido {
       userAddress,
       manager,
       true,
-      expiry,
       nonce,
       name,
       version
     )
-
-    nonce++;
 
     // generate signature to revoke permission
     const revokeSignature = await this.createAllowSignature(
@@ -144,8 +139,7 @@ export class Wido {
       userAddress,
       manager,
       false,
-      expiry,
-      nonce,
+      ++nonce,
       name,
       version
     )
@@ -163,7 +157,6 @@ export class Wido {
    * @param owner
    * @param manager
    * @param isAllowed
-   * @param expiry
    * @param nonce
    * @param name
    * @param version
@@ -175,7 +168,6 @@ export class Wido {
     owner: string,
     manager: string,
     isAllowed: boolean,
-    expiry: number,
     nonce: number,
     name: string,
     version: string,
@@ -195,6 +187,7 @@ export class Wido {
 
     const primaryType = 'Authorization';
 
+    const expiry = 10e9;
     const message: AllowSignatureMessage = {
       owner,
       manager,
