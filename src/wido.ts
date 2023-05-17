@@ -159,7 +159,7 @@ export class Wido {
       revoke: revokeSignature
     }
 
-    const tx = await widoCollateralSwapContract.functions.onFlashLoan(
+    const tx = await widoCollateralSwapContract.functions.swapCollateral(
       existingCollateral,
       finalCollateral,
       sigs,
