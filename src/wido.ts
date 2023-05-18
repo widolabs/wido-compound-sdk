@@ -98,6 +98,50 @@ export class Wido {
   }
 
   /**
+   * Returns the user's current position details in a Comet
+   * @param comet
+   * @param swapQuote
+   */
+  async getUserPredictedPosition(comet: string, swapQuote: CollateralSwapRoute) {
+    Wido.validateComet(comet);
+
+    const userAddress = await this.getUserAddress();
+    const cometContract = getCometContract(comet, this.wallet.provider);
+    const infos = await Wido.getAssetsInfo(cometContract);
+
+    const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
+
+    // modify the balances to subtract the swapped balance and increase the potentially received
+    // in order to compute the predicted position details
+    const predictedBalances = balances.map((balance, i) => {
+      const {asset} = infos[i];
+      if (asset === swapQuote.fromCollateral) {
+        return balance.sub(BigNumber.from(swapQuote.fromCollateralAmount))
+      } else if (asset === swapQuote.toCollateral) {
+        return balance.add(BigNumber.from(swapQuote.toCollateralAmount))
+      } else {
+        return balance;
+      }
+    })
+
+    const {
+      collateralValueInBaseUnits,
+      totalBorrowCapacityInBaseUnits
+    } = Wido.getPositionDetails(infos, predictedBalances, prices);
+
+    const borrowedInBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
+
+    const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
+
+    return {
+      collateralValue: collateralValueInBaseUnits,
+      liquidationPoint: "", // TODO
+      borrowCapacity: totalBorrowCapacityInBaseUnits,
+      borrowAvailable: borrowCapacityInBaseUnits,
+    }
+  }
+
+  /**
    * Quotes the possible outcome of the collateral swap
    * @param comet
    * @param fromCollateral
