@@ -188,14 +188,18 @@ export class Wido {
       allow: allowSignature,
       revoke: revokeSignature
     }
+    const widoSwap = {
+      router: swapQuote.to,
+      tokenManager: swapQuote.tokenManager,
+      callData: swapQuote.data,
+    }
 
     const tx = await widoCollateralSwapContract.functions.swapCollateral(
       existingCollateral,
       finalCollateral,
       sigs,
-      swapQuote.to,
-      swapQuote.tokenManager,
-      swapQuote.data,
+      widoSwap,
+      cometAddress
     );
 
     return tx.wait();

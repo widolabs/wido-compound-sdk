@@ -87,19 +87,31 @@ export const WidoCollateralSwap_ABI = [
         ]
       },
       {
-        "internalType": "address",
-        "name": "widoRouter",
-        "type": "address"
+        "internalType": "struct WidoCollateralSwap.WidoSwap",
+        "name": "swap",
+        "type": "tuple",
+        "components": [
+          {
+            "internalType": "address",
+            "name": "router",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenManager",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "callData",
+            "type": "bytes"
+          }
+        ]
       },
       {
         "internalType": "address",
-        "name": "widoTokenManager",
+        "name": "comet",
         "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "widoRouterCalldata",
-        "type": "bytes"
       }
     ],
     "stateMutability": "nonpayable",
