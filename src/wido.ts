@@ -10,20 +10,19 @@ import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
 import { sign } from './utils/EIP712';
-import { getChainId, getCometAddress, getCometContract, getWidoContract, pickAsset } from './utils';
+import { getChainId, getCometAddress, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
 import { Collaterals, CollateralSwapRoute } from './types';
+import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 
 export class Wido {
   private readonly comet: string;
-  private readonly cometContract: Contract;
   private readonly wallet: Wallet;
 
   constructor(signer: Wallet, comet: string) {
     Wido.validateComet(comet);
     this.wallet = signer;
     this.comet = comet;
-    this.cometContract = getCometContract(comet, this.wallet.provider);
   }
 
   /**
@@ -37,8 +36,8 @@ export class Wido {
    * Returns a list of the collaterals supported by the given Comet
    */
   public async getSupportedCollaterals(): Promise<string[]> {
-    await this.checkWalletInRightChain();
-    const infos = await this.getAssetsInfo();
+    const cometContract = await this.getCometContract();
+    const infos = await this.getAssetsInfo(cometContract);
     return infos.map(asset => asset.asset)
   }
 
@@ -46,13 +45,13 @@ export class Wido {
    * Returns a list of user owned collaterals on the given Comet
    */
   public async getUserCollaterals(): Promise<Collaterals> {
-    await this.checkWalletInRightChain();
+    const cometContract = await this.getCometContract();
 
     const collaterals = await this.getSupportedCollaterals()
     const userAddress = this.getUserAddress();
 
     const calls = collaterals.map(collateral => {
-      return this.cometContract.callStatic.userCollateral(userAddress, collateral);
+      return cometContract.callStatic.userCollateral(userAddress, collateral);
     })
 
     return await Promise.all(calls)
@@ -70,19 +69,19 @@ export class Wido {
    * Returns the user's current position details in a Comet
    */
   public async getUserCurrentPosition() {
-    await this.checkWalletInRightChain();
+    const cometContract = await this.getCometContract();
 
     const userAddress = await this.getUserAddress();
-    const infos = await this.getAssetsInfo();
+    const infos = await this.getAssetsInfo(cometContract);
 
-    const { balances, prices } = await this.getCollateralsDetails(infos, userAddress);
+    const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
 
     const {
       collateralValueInBaseUnits,
       totalBorrowCapacityInBaseUnits
     } = Wido.getPositionDetails(infos, balances, prices);
 
-    const borrowedInBaseUnits = await this.getBorrowedInBaseUnits(userAddress);
+    const borrowedInBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
 
     const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
 
@@ -99,12 +98,12 @@ export class Wido {
    * @param swapQuote
    */
   public async getUserPredictedPosition(swapQuote: CollateralSwapRoute) {
-    await this.checkWalletInRightChain();
+    const cometContract = await this.getCometContract();
 
     const userAddress = await this.getUserAddress();
-    const infos = await this.getAssetsInfo();
+    const infos = await this.getAssetsInfo(cometContract);
 
-    const { balances, prices } = await this.getCollateralsDetails(infos, userAddress);
+    const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
 
     // modify the balances to subtract the swapped balance and increase the potentially received
     // in order to compute the predicted position details
@@ -124,7 +123,7 @@ export class Wido {
       totalBorrowCapacityInBaseUnits
     } = Wido.getPositionDetails(infos, predictedBalances, prices);
 
-    const borrowedInBaseUnits = await this.getBorrowedInBaseUnits(userAddress);
+    const borrowedInBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
 
     const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
 
@@ -145,8 +144,6 @@ export class Wido {
     fromCollateral: string,
     toCollateral: string
   ): Promise<CollateralSwapRoute> {
-    await this.checkWalletInRightChain();
-
     const chainId = getChainId(this.comet);
     const userAddress = await this.getUserAddress();
     const collaterals = await this.getUserCollaterals();
@@ -197,11 +194,9 @@ export class Wido {
   public async swapCollateral(
     swapQuote: CollateralSwapRoute
   ): Promise<ContractReceipt> {
-    await this.checkWalletInRightChain();
-
     const chainId = getChainId(this.comet);
     const cometAddress = getCometAddress(this.comet);
-    const widoCollateralSwapContract = getWidoContract(chainId, this.wallet);
+    const widoCollateralSwapContract = await this.getWidoContract(chainId, this.wallet);
 
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
@@ -235,13 +230,14 @@ export class Wido {
   }
 
   /**
+   * Returns the info of all supported assets in the Comet
    * @private
    */
-  private async getAssetsInfo(): Promise<AssetInfo[]> {
-    const numAssets = await this.cometContract.callStatic.numAssets();
+  private async getAssetsInfo(cometContract: Contract): Promise<AssetInfo[]> {
+    const numAssets = await cometContract.callStatic.numAssets();
     return await Promise.all(
       [...Array(numAssets).keys()]
-        .map(i => this.cometContract.callStatic.getAssetInfo(i))
+        .map(i => cometContract.callStatic.getAssetInfo(i))
     );
   }
 
@@ -249,13 +245,13 @@ export class Wido {
    * Fetch and return the base token details of a Comet
    * @private
    */
-  private async getBaseTokenDetails(): Promise<{
+  private static async getBaseTokenDetails(cometContract: Contract): Promise<{
     basePrice: number,
     baseDecimals: number,
   }> {
-    const baseTokenPriceFeed = await this.cometContract.callStatic.baseTokenPriceFeed();
-    const basePrice = +(await this.cometContract.callStatic.getPrice(baseTokenPriceFeed)).toString() / 1e8;
-    const baseDecimals = +(await this.cometContract.callStatic.decimals()).toString();
+    const baseTokenPriceFeed = await cometContract.callStatic.baseTokenPriceFeed();
+    const basePrice = +(await cometContract.callStatic.getPrice(baseTokenPriceFeed)).toString() / 1e8;
+    const baseDecimals = +(await cometContract.callStatic.decimals()).toString();
 
     return {
       basePrice,
@@ -265,11 +261,13 @@ export class Wido {
 
   /**
    * Fetch and return the details of the collaterals of a user on a Comet
+   * @param cometContract
    * @param infos
    * @param userAddress
    * @private
    */
-  private async getCollateralsDetails(
+  private static async getCollateralsDetails(
+    cometContract: Contract,
     infos: AssetInfo[],
     userAddress: string
   ): Promise<{
@@ -280,8 +278,8 @@ export class Wido {
     const promisesPrices = [];
     for (let i = 0; i < infos.length; i++) {
       const { asset, priceFeed } = infos[i];
-      promisesCollaterals.push(this.cometContract.callStatic.collateralBalanceOf(userAddress, asset));
-      promisesPrices.push(this.cometContract.callStatic.getPrice(priceFeed));
+      promisesCollaterals.push(cometContract.callStatic.collateralBalanceOf(userAddress, asset));
+      promisesPrices.push(cometContract.callStatic.getPrice(priceFeed));
     }
     const collateralBalances = await Promise.all(promisesCollaterals);
     const collateralPrices = await Promise.all(promisesPrices);
@@ -320,12 +318,13 @@ export class Wido {
 
   /**
    * Returns the amount of borrowed base token
+   * @param cometContract
    * @param userAddress
    * @private
    */
-  private async getBorrowedInBaseUnits(userAddress: string): Promise<number> {
-    const { basePrice, baseDecimals } = await this.getBaseTokenDetails();
-    const borrowBalance = +(await this.cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
+  private static async getBorrowedInBaseUnits(cometContract: Contract, userAddress: string): Promise<number> {
+    const { basePrice, baseDecimals } = await Wido.getBaseTokenDetails(cometContract);
+    const borrowBalance = +(await cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
     return borrowBalance / Math.pow(10, baseDecimals) * basePrice;
   }
 
@@ -459,6 +458,10 @@ export class Wido {
     return await sign(domain, primaryType, message, types, this.wallet);
   }
 
+  /**
+   * Returns user public address
+   * @private
+   */
   private async getUserAddress(): Promise<string> {
     let userAddress = this.wallet.address;
 
@@ -467,6 +470,29 @@ export class Wido {
     }
 
     return userAddress;
+  }
+
+  /**
+   * Builds an instance of the Comet contract given the comet key
+   */
+  private async getCometContract(): Promise<Contract> {
+    await this.checkWalletInRightChain();
+    const cometAddress = getCometAddress(this.comet)
+    return new Contract(cometAddress, Comet_ABI, this.wallet.provider);
+  }
+
+  /**
+   * Builds an instance of the Wido contract on a given chain
+   * @param chainId
+   * @param signer
+   */
+  private async getWidoContract(chainId: number, signer: Wallet): Promise<Contract> {
+    await this.checkWalletInRightChain();
+    if (!(chainId in widoCollateralSwapAddress)) {
+      throw new Error(`WidoCollateralSwap not deployed on chain ${chainId}`);
+    }
+    const address = widoCollateralSwapAddress[chainId];
+    return new Contract(address, WidoCollateralSwap_ABI, signer);
   }
 
   /**
