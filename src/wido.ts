@@ -17,11 +17,11 @@ import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 
 export class Wido {
   private readonly comet: string;
-  private readonly wallet: Wallet;
+  private readonly signer: Wallet;
 
   constructor(signer: Wallet, comet: string) {
     Wido.validateComet(comet);
-    this.wallet = signer;
+    this.signer = signer;
     this.comet = comet;
   }
 
@@ -196,7 +196,7 @@ export class Wido {
   ): Promise<ContractReceipt> {
     const chainId = getChainId(this.comet);
     const cometAddress = getCometAddress(this.comet);
-    const widoCollateralSwapContract = await this.getWidoContract(chainId, this.wallet);
+    const widoCollateralSwapContract = await this.getWidoContract(chainId, this.signer);
 
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
@@ -350,7 +350,7 @@ export class Wido {
     const contract = new ethers.Contract(
       cometAddress,
       Comet_ABI,
-      new providers.MulticallProvider(this.wallet.provider)
+      new providers.MulticallProvider(this.signer.provider)
     );
 
     const results = await Promise.all([
@@ -455,7 +455,7 @@ export class Wido {
       ]
     };
 
-    return await sign(domain, primaryType, message, types, this.wallet);
+    return await sign(domain, primaryType, message, types, this.signer);
   }
 
   /**
@@ -463,10 +463,10 @@ export class Wido {
    * @private
    */
   private async getUserAddress(): Promise<string> {
-    let userAddress = this.wallet.address;
+    let userAddress = this.signer.address;
 
-    if (!userAddress && this.wallet.getAddress) {
-      userAddress = await this.wallet.getAddress();
+    if (!userAddress && this.signer.getAddress) {
+      userAddress = await this.signer.getAddress();
     }
 
     return userAddress;
@@ -478,7 +478,7 @@ export class Wido {
   private async getCometContract(): Promise<Contract> {
     await this.checkWalletInRightChain();
     const cometAddress = getCometAddress(this.comet)
-    return new Contract(cometAddress, Comet_ABI, this.wallet.provider);
+    return new Contract(cometAddress, Comet_ABI, this.signer.provider);
   }
 
   /**
@@ -501,7 +501,7 @@ export class Wido {
    */
   private async checkWalletInRightChain(): Promise<void> {
     const cometChain = getChainId(this.comet);
-    const walletChain = await this.wallet.getChainId();
+    const walletChain = await this.signer.getChainId();
     if (cometChain !== walletChain) {
       throw new Error("Wallet is in another chain");
     }
