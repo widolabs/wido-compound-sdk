@@ -5,11 +5,8 @@ import { getWallet } from './helpers';
 
 
 it("should pass", async () => {
-  const wido = new Wido(getWallet())
-  const userCollaterals = await wido.getUserCollaterals(
-    "0xCb005d849F384b64838aAD885d5Ff150fc8B7904",
-    "mainnet_usdc"
-  );
+  const wido = new Wido(getWallet(), "mainnet_usdc")
+  const userCollaterals = await wido.getUserCollaterals();
 
   expect(userCollaterals.length).toBeGreaterThanOrEqual(5);
 

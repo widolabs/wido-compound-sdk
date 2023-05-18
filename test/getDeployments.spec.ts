@@ -3,7 +3,7 @@ import { Wido } from '../src';
 
 
 it("should return already known dpeloyments", async () => {
-  const deployments = await Wido.getDeployments()
+  const deployments = Wido.getDeployments()
 
   expect(deployments.length).toBeGreaterThanOrEqual(8);
 

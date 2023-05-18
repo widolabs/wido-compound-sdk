@@ -4,8 +4,8 @@ import { getWallet } from './helpers';
 
 
 it("should pass", async () => {
-  const wido = new Wido(getWallet())
-  const supportedAssets = await wido.getSupportedCollaterals("mainnet_usdc");
+  const wido = new Wido(getWallet(), "mainnet_usdc")
+  const supportedAssets = await wido.getSupportedCollaterals();
 
   expect(supportedAssets.length).toBeGreaterThanOrEqual(5);
 
