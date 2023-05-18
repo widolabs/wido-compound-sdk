@@ -2,11 +2,22 @@ import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/consta
 import { Collateral, Collaterals } from '../types';
 
 const MAINNET_ID = 1;
+const GOERLI_ID = 5;
+
 const POLYGON_ID = 137;
+const MUMBAI_ID = 80001;
+
+const FUJI_ID = 43113;
+
+const GOERLI_OPTIMISM_ID = 420;
 
 const keyToId = {
   mainnet: MAINNET_ID,
-  polygon: POLYGON_ID
+  goerli: GOERLI_ID,
+  polygon: POLYGON_ID,
+  mumbai: MUMBAI_ID,
+  goerli_optimism: GOERLI_OPTIMISM_ID,
+  fuji: FUJI_ID,
 }
 
 export const widoCollateralSwapAddress: Record<number, string> = {
@@ -28,7 +39,9 @@ export function getCometAddress(cometKey: string): string {
  * @param comet
  */
 export function getChainId(comet: string): number {
-  const chainKey = comet.split("_")[0]
+  const array = comet.split("_");
+  array.pop();
+  const chainKey = array.join("_");
   // @ts-ignore
   return keyToId[chainKey];
 }
