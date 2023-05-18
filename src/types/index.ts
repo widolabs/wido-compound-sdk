@@ -17,3 +17,10 @@ export interface CollateralSwapRoute {
   to?: string
   data?: string
 }
+
+export interface Position {
+  collateralValue: number
+  liquidationPoint: number
+  borrowCapacity: number
+  borrowAvailable: number
+}

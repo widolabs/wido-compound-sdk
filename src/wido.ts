@@ -12,7 +12,7 @@ import { Comet_ABI } from './types/comet';
 import { sign } from './utils/EIP712';
 import { getChainId, getCometAddress, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
-import { Collaterals, CollateralSwapRoute } from './types';
+import { Collaterals, CollateralSwapRoute, Position } from './types';
 import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 
 export class Wido {
@@ -68,7 +68,7 @@ export class Wido {
   /**
    * Returns the user's current position details in a Comet
    */
-  public async getUserCurrentPosition() {
+  public async getUserCurrentPosition(): Promise<Position> {
     const cometContract = await this.getCometContract();
 
     const userAddress = await this.getUserAddress();
@@ -76,28 +76,14 @@ export class Wido {
 
     const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
 
-    const {
-      collateralValueInBaseUnits,
-      totalBorrowCapacityInBaseUnits
-    } = Wido.getPositionDetails(infos, balances, prices);
-
-    const borrowedInBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
-
-    const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
-
-    return {
-      collateralValue: collateralValueInBaseUnits,
-      liquidationPoint: "", // TODO
-      borrowCapacity: totalBorrowCapacityInBaseUnits,
-      borrowAvailable: borrowCapacityInBaseUnits,
-    }
+    return await Wido.getPositionDetails(cometContract, userAddress, infos, balances, prices);
   }
 
   /**
    * Returns the user's current position details in a Comet
    * @param swapQuote
    */
-  public async getUserPredictedPosition(swapQuote: CollateralSwapRoute) {
+  public async getUserPredictedPosition(swapQuote: CollateralSwapRoute): Promise<Position> {
     const cometContract = await this.getCometContract();
 
     const userAddress = await this.getUserAddress();
@@ -118,21 +104,7 @@ export class Wido {
       }
     })
 
-    const {
-      collateralValueInBaseUnits,
-      totalBorrowCapacityInBaseUnits
-    } = Wido.getPositionDetails(infos, predictedBalances, prices);
-
-    const borrowedInBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
-
-    const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
-
-    return {
-      collateralValue: collateralValueInBaseUnits,
-      liquidationPoint: "", // TODO
-      borrowCapacity: totalBorrowCapacityInBaseUnits,
-      borrowAvailable: borrowCapacityInBaseUnits,
-    }
+    return await Wido.getPositionDetails(cometContract, userAddress, infos, predictedBalances, prices);
   }
 
   /**
@@ -291,28 +263,49 @@ export class Wido {
 
   /**
    * Returns the summary of a position on the Comet given the list of balances/prices
+   * @param cometContract
+   * @param userAddress
    * @param infos
    * @param balances
    * @param prices
    * @private
    */
-  private static getPositionDetails(infos: AssetInfo[], balances: BigNumber[], prices: BigNumber[]): {
-    collateralValueInBaseUnits: number
-    totalBorrowCapacityInBaseUnits: number
-  } {
-    let collateralValueInBaseUnits = 0;
-    let totalBorrowCapacityInBaseUnits = 0;
+  private static async getPositionDetails(
+    cometContract: Contract,
+    userAddress: string,
+    infos: AssetInfo[],
+    balances: BigNumber[],
+    prices: BigNumber[]
+  ): Promise<Position> {
+    let collateralValue_inBaseUnits = 0;
+    let totalBorrowCapacity_inBaseUnits = 0;
+    let liquidationPoint_inBaseUnits = 0;
+
     for (let i = 0; i < infos.length; i++) {
       const collateralBalance = +(balances[i].toString()) / +(infos[i].scale).toString();
       const collateralPrice = +prices[i].toString() / 1e8;
-      collateralValueInBaseUnits += collateralBalance * collateralPrice;
-      totalBorrowCapacityInBaseUnits += (
+      collateralValue_inBaseUnits += collateralBalance * collateralPrice;
+      totalBorrowCapacity_inBaseUnits += (
         collateralBalance * collateralPrice * (+infos[i].borrowCollateralFactor.toString() / 1e18)
       );
+      liquidationPoint_inBaseUnits += (
+        collateralBalance * collateralPrice * (+infos[i].liquidationFactor.toString() / 1e18)
+      );
     }
+
+    const borrowed_inBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
+    const borrowAvailable_inBaseUnits = totalBorrowCapacity_inBaseUnits - borrowed_inBaseUnits;
+
+    const borrowPercentageUsed =
+      (totalBorrowCapacity_inBaseUnits - borrowAvailable_inBaseUnits) / totalBorrowCapacity_inBaseUnits;
+
+    liquidationPoint_inBaseUnits *= borrowPercentageUsed;
+
     return {
-      collateralValueInBaseUnits,
-      totalBorrowCapacityInBaseUnits
+      collateralValue: collateralValue_inBaseUnits,
+      liquidationPoint: liquidationPoint_inBaseUnits,
+      borrowCapacity: totalBorrowCapacity_inBaseUnits,
+      borrowAvailable: borrowAvailable_inBaseUnits
     }
   }
 
