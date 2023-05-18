@@ -1,7 +1,8 @@
-import { ethers, Wallet, ContractReceipt } from 'ethers';
+import { ethers, Wallet, ContractReceipt, Contract, BigNumber } from 'ethers';
 import {
   AllowSignatureMessage,
   AllowTypes,
+  AssetInfo,
   EIP712Domain,
   Signature
 } from '@compound-finance/compound-js/dist/nodejs/types';
@@ -80,40 +81,16 @@ export class Wido {
 
     const userAddress = await this.getUserAddress();
     const cometContract = getCometContract(comet, this.wallet.provider);
-    const numAssets = await cometContract.callStatic.numAssets();
+    const infos = await Wido.getAssetsInfo(cometContract);
 
-    const infos = await Promise.all(
-      [...Array(numAssets).keys()]
-        .map(i => cometContract.callStatic.getAssetInfo(i))
-    );
+    const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
 
-    const promisesCollaterals = [];
-    const promisesPrices = [];
-    for (let i = 0; i < numAssets; i++) {
-      const { asset, priceFeed } = infos[i];
-      promisesCollaterals.push(cometContract.callStatic.collateralBalanceOf(userAddress, asset));
-      promisesPrices.push(cometContract.callStatic.getPrice(priceFeed));
-    }
-    const collateralBalances = await Promise.all(promisesCollaterals);
-    const collateralPrices = await Promise.all(promisesPrices);
+    const {
+      collateralValueInBaseUnits,
+      totalBorrowCapacityInBaseUnits
+    } = Wido.getPositionDetails(infos, balances, prices);
 
-    const baseTokenPriceFeed = await cometContract.callStatic.baseTokenPriceFeed();
-    const basePrice = +(await cometContract.callStatic.getPrice(baseTokenPriceFeed)).toString() / 1e8;
-    const baseDecimals = +(await cometContract.callStatic.decimals()).toString();
-
-    let collateralValueInBaseUnits = 0;
-    let totalBorrowCapacityInBaseUnits = 0;
-    for (let i = 0; i < numAssets; i++) {
-      const collateralBalance = +(collateralBalances[i].toString()) / +(infos[i].scale).toString();
-      const collateralPrice = +collateralPrices[i].toString() / 1e8;
-      collateralValueInBaseUnits += collateralBalance * collateralPrice;
-      totalBorrowCapacityInBaseUnits += (
-        collateralBalance * collateralPrice * (+infos[i].borrowCollateralFactor.toString() / 1e18)
-      );
-    }
-
-    const borrowBalance = +(await cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
-    const borrowedInBaseUnits = borrowBalance / Math.pow(10, baseDecimals) * basePrice;
+    const borrowedInBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
 
     const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
 
@@ -223,6 +200,108 @@ export class Wido {
     );
 
     return tx.wait();
+  }
+
+  /**
+   *
+   * @param cometContract
+   * @private
+   */
+  private static async getAssetsInfo(cometContract: Contract): Promise<AssetInfo[]> {
+    const numAssets = await cometContract.callStatic.numAssets();
+
+    return await Promise.all(
+      [...Array(numAssets).keys()]
+        .map(i => cometContract.callStatic.getAssetInfo(i))
+    );
+  }
+
+  /**
+   * Fetch and return the base token details of a Comet
+   * @param cometContract
+   * @private
+   */
+  private static async getBaseTokenDetails(cometContract: Contract): Promise<{
+    basePrice: number,
+    baseDecimals: number,
+  }> {
+    const baseTokenPriceFeed = await cometContract.callStatic.baseTokenPriceFeed();
+    const basePrice = +(await cometContract.callStatic.getPrice(baseTokenPriceFeed)).toString() / 1e8;
+    const baseDecimals = +(await cometContract.callStatic.decimals()).toString();
+
+    return {
+      basePrice,
+      baseDecimals,
+    }
+  }
+
+  /**
+   * Fetch and return the details of the collaterals of a user on a Comet
+   * @param cometContract
+   * @param infos
+   * @param userAddress
+   * @private
+   */
+  private static async getCollateralsDetails(
+    cometContract: Contract,
+    infos: AssetInfo[],
+    userAddress: string
+  ): Promise<{
+    balances: BigNumber[]
+    prices: BigNumber[]
+  }> {
+    const promisesCollaterals = [];
+    const promisesPrices = [];
+    for (let i = 0; i < infos.length; i++) {
+      const { asset, priceFeed } = infos[i];
+      promisesCollaterals.push(cometContract.callStatic.collateralBalanceOf(userAddress, asset));
+      promisesPrices.push(cometContract.callStatic.getPrice(priceFeed));
+    }
+    const collateralBalances = await Promise.all(promisesCollaterals);
+    const collateralPrices = await Promise.all(promisesPrices);
+    return {
+      balances: collateralBalances,
+      prices: collateralPrices
+    }
+  }
+
+  /**
+   * Returns the summary of a position on the Comet given the list of balances/prices
+   * @param infos
+   * @param balances
+   * @param prices
+   * @private
+   */
+  private static getPositionDetails(infos: AssetInfo[], balances: BigNumber[], prices: BigNumber[]): {
+    collateralValueInBaseUnits: number
+    totalBorrowCapacityInBaseUnits: number
+  } {
+    let collateralValueInBaseUnits = 0;
+    let totalBorrowCapacityInBaseUnits = 0;
+    for (let i = 0; i < infos.length; i++) {
+      const collateralBalance = +(balances[i].toString()) / +(infos[i].scale).toString();
+      const collateralPrice = +prices[i].toString() / 1e8;
+      collateralValueInBaseUnits += collateralBalance * collateralPrice;
+      totalBorrowCapacityInBaseUnits += (
+        collateralBalance * collateralPrice * (+infos[i].borrowCollateralFactor.toString() / 1e18)
+      );
+    }
+    return {
+      collateralValueInBaseUnits,
+      totalBorrowCapacityInBaseUnits
+    }
+  }
+
+  /**
+   * Returns the amount of borrowed base token
+   * @param cometContract
+   * @param userAddress
+   * @private
+   */
+  private static async getBorrowedInBaseUnits(cometContract: Contract, userAddress: string): Promise<number> {
+    const { basePrice, baseDecimals } = await Wido.getBaseTokenDetails(cometContract);
+    const borrowBalance = +(await cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
+    return borrowBalance / Math.pow(10, baseDecimals) * basePrice;
   }
 
   /**
