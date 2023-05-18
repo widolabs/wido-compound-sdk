@@ -37,7 +37,7 @@ export class Wido {
 
     const contract = getCometContract(comet, this.wallet.provider);
     const infos = await Wido.getAssetsInfo(contract);
-    
+
     return infos.map(asset => asset.asset)
   }
 
@@ -61,7 +61,7 @@ export class Wido {
         return results.map((result, index) => {
           return {
             address: collaterals[index],
-            balance: result.balance
+            balance: result[0]
           }
         })
       })

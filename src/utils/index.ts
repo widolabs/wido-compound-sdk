@@ -5,9 +5,17 @@ import { AssetInfo } from '@compound-finance/compound-js/dist/nodejs/types';
 import { Collateral, Collaterals } from '../types';
 import { WidoCollateralSwap_ABI } from '../types/widoCollateralSwap';
 
+const MAINNET_ID = 1;
+const POLYGON_ID = 137;
+
+const keyToId = {
+  mainnet: MAINNET_ID,
+  polygon: POLYGON_ID
+}
+
 const widoCollateralSwapAddress: Record<number, string> = {
-  1: "",
-  137: "",
+  [MAINNET_ID]: "",
+  [POLYGON_ID]: "",
 }
 
 export function getCometAddress(cometKey: string): string {
@@ -17,8 +25,8 @@ export function getCometAddress(cometKey: string): string {
 
 export function getChainId(comet: string): number {
   const chainKey = comet.split("_")[0]
-  const provider = new providers.BaseProvider(chainKey);
-  return provider._network.chainId;
+  // @ts-ignore
+  return keyToId[chainKey];
 }
 
 export function getCometContract(comet: string, provider: providers.Provider): Contract {
