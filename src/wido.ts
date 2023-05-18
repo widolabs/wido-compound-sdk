@@ -36,14 +36,9 @@ export class Wido {
     Wido.validateComet(comet);
 
     const contract = getCometContract(comet, this.wallet.provider);
-    const numAssets = await contract.callStatic.numAssets();
-    const calls = [...Array(numAssets).keys()]
-      .map(i => contract.callStatic.getAssetInfo(i));
-
-    return await Promise.all(calls)
-      .then(assets => {
-        return assets.map(asset => asset.asset)
-      })
+    const infos = await Wido.getAssetsInfo(contract);
+    
+    return infos.map(asset => asset.asset)
   }
 
   /**
