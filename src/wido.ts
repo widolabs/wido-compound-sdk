@@ -29,14 +29,15 @@ export class Wido {
   /**
    * Returns a list of the existing deployments
    */
-  static getDeployments(): string[] {
+  public static getDeployments(): string[] {
     return Compound.comet.getSupportedDeployments();
   }
 
   /**
    * Returns a list of the collaterals supported by the given Comet
    */
-  async getSupportedCollaterals(): Promise<string[]> {
+  public async getSupportedCollaterals(): Promise<string[]> {
+    await this.checkWalletInRightChain();
     const infos = await this.getAssetsInfo();
     return infos.map(asset => asset.asset)
   }
@@ -44,7 +45,9 @@ export class Wido {
   /**
    * Returns a list of user owned collaterals on the given Comet
    */
-  async getUserCollaterals(): Promise<Collaterals> {
+  public async getUserCollaterals(): Promise<Collaterals> {
+    await this.checkWalletInRightChain();
+
     const collaterals = await this.getSupportedCollaterals()
     const userAddress = this.getUserAddress();
 
@@ -66,7 +69,9 @@ export class Wido {
   /**
    * Returns the user's current position details in a Comet
    */
-  async getUserCurrentPosition() {
+  public async getUserCurrentPosition() {
+    await this.checkWalletInRightChain();
+
     const userAddress = await this.getUserAddress();
     const infos = await this.getAssetsInfo();
 
@@ -93,7 +98,9 @@ export class Wido {
    * Returns the user's current position details in a Comet
    * @param swapQuote
    */
-  async getUserPredictedPosition(swapQuote: CollateralSwapRoute) {
+  public async getUserPredictedPosition(swapQuote: CollateralSwapRoute) {
+    await this.checkWalletInRightChain();
+
     const userAddress = await this.getUserAddress();
     const infos = await this.getAssetsInfo();
 
@@ -134,10 +141,12 @@ export class Wido {
    * @param fromCollateral
    * @param toCollateral
    */
-  async getCollateralSwapRoute(
+  public async getCollateralSwapRoute(
     fromCollateral: string,
     toCollateral: string
   ): Promise<CollateralSwapRoute> {
+    await this.checkWalletInRightChain();
+
     const chainId = getChainId(this.comet);
     const userAddress = await this.getUserAddress();
     const collaterals = await this.getUserCollaterals();
@@ -185,9 +194,11 @@ export class Wido {
    * Executes a collateral swap on a Comet given an existing quote
    * @param swapQuote
    */
-  async swapCollateral(
+  public async swapCollateral(
     swapQuote: CollateralSwapRoute
   ): Promise<ContractReceipt> {
+    await this.checkWalletInRightChain();
+
     const chainId = getChainId(this.comet);
     const cometAddress = getCometAddress(this.comet);
     const widoCollateralSwapContract = getWidoContract(chainId, this.wallet);
@@ -228,7 +239,6 @@ export class Wido {
    */
   private async getAssetsInfo(): Promise<AssetInfo[]> {
     const numAssets = await this.cometContract.callStatic.numAssets();
-
     return await Promise.all(
       [...Array(numAssets).keys()]
         .map(i => this.cometContract.callStatic.getAssetInfo(i))
@@ -459,6 +469,23 @@ export class Wido {
     return userAddress;
   }
 
+  /**
+   * Checks that the wallet is in the right chain
+   * @private
+   */
+  private async checkWalletInRightChain(): Promise<void> {
+    const cometChain = getChainId(this.comet);
+    const walletChain = await this.wallet.getChainId();
+    if (cometChain !== walletChain) {
+      throw new Error("Wallet is in another chain");
+    }
+  }
+
+  /**
+   * Checks the given `comet` is a supported deployment
+   * @param comet
+   * @private
+   */
   private static validateComet(comet: string) {
     const existingDeployments = this.getDeployments()
     if (!existingDeployments.includes(comet)) {
