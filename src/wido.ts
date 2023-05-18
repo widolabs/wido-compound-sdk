@@ -72,6 +72,60 @@ export class Wido {
   }
 
   /**
+   * Returns the user's current position details in a Comet
+   * @param comet
+   */
+  async getUserCurrentPosition(comet: string) {
+    Wido.validateComet(comet);
+
+    const userAddress = await this.getUserAddress();
+    const cometContract = getCometContract(comet, this.wallet.provider);
+    const numAssets = await cometContract.callStatic.numAssets();
+
+    const infos = await Promise.all(
+      [...Array(numAssets).keys()]
+        .map(i => cometContract.callStatic.getAssetInfo(i))
+    );
+
+    const promisesCollaterals = [];
+    const promisesPrices = [];
+    for (let i = 0; i < numAssets; i++) {
+      const { asset, priceFeed } = infos[i];
+      promisesCollaterals.push(cometContract.callStatic.collateralBalanceOf(userAddress, asset));
+      promisesPrices.push(cometContract.callStatic.getPrice(priceFeed));
+    }
+    const collateralBalances = await Promise.all(promisesCollaterals);
+    const collateralPrices = await Promise.all(promisesPrices);
+
+    const baseTokenPriceFeed = await cometContract.callStatic.baseTokenPriceFeed();
+    const basePrice = +(await cometContract.callStatic.getPrice(baseTokenPriceFeed)).toString() / 1e8;
+    const baseDecimals = +(await cometContract.callStatic.decimals()).toString();
+
+    let collateralValueInBaseUnits = 0;
+    let totalBorrowCapacityInBaseUnits = 0;
+    for (let i = 0; i < numAssets; i++) {
+      const collateralBalance = +(collateralBalances[i].toString()) / +(infos[i].scale).toString();
+      const collateralPrice = +collateralPrices[i].toString() / 1e8;
+      collateralValueInBaseUnits += collateralBalance * collateralPrice;
+      totalBorrowCapacityInBaseUnits += (
+        collateralBalance * collateralPrice * (+infos[i].borrowCollateralFactor.toString() / 1e18)
+      );
+    }
+
+    const borrowBalance = +(await cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
+    const borrowedInBaseUnits = borrowBalance / Math.pow(10, baseDecimals) * basePrice;
+
+    const borrowCapacityInBaseUnits = totalBorrowCapacityInBaseUnits - borrowedInBaseUnits;
+
+    return {
+      collateralValue: collateralValueInBaseUnits,
+      liquidationPoint: "", // TODO
+      borrowCapacity: totalBorrowCapacityInBaseUnits,
+      borrowAvailable: borrowCapacityInBaseUnits,
+    }
+  }
+
+  /**
    * Quotes the possible outcome of the collateral swap
    * @param comet
    * @param fromCollateral
