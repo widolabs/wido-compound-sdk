@@ -21,7 +21,7 @@ const keyToId = {
 }
 
 export const widoCollateralSwapAddress: Record<number, string> = {
-  [MAINNET_ID]: "0x5e5713a0d915701f464debb66015add62b2e6ae9",
+  [MAINNET_ID]: "0x5E5713a0d915701F464DEbb66015adD62B2e6AE9",
   [POLYGON_ID]: "",
 }
 

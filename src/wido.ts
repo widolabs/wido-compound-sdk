@@ -117,7 +117,6 @@ export class Wido {
     toCollateral: string
   ): Promise<CollateralSwapRoute> {
     const chainId = getChainId(this.comet);
-    const userAddress = await this.getUserAddress();
     const collaterals = await this.getUserCollaterals();
 
     const fromAsset = pickAsset(collaterals, fromCollateral);
@@ -129,8 +128,7 @@ export class Wido {
       toChainId: chainId,
       toToken: toAsset.address,
       amount: fromAsset.balance.toString(),
-      user: userAddress,
-      recipient: userAddress,
+      user: widoCollateralSwapAddress[chainId],
     }
 
     useLocalApi(); // REMOVE

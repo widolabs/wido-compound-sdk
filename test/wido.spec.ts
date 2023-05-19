@@ -1,10 +1,188 @@
 import * as wido from "../src"
-import { it, expect } from "vitest"
+import { it, expect, describe } from "vitest"
+import { Wido } from '../src';
+import { approveERC20, approveWeth, getCometContract, getERC20, getWallet, getWeth, USDC, WBTC, WETH } from './helpers';
+import { BigNumber } from 'ethers';
+import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
 
-it("should have named exports", () => {
-  expect(Object.keys(wido)).toMatchInlineSnapshot(`
+describe("CollateralSwap SDK", () => {
+
+  it("should have named exports", () => {
+    expect(Object.keys(wido)).toMatchInlineSnapshot(`
     [
       "Wido",
     ]
   `)
+  })
+
+  it("should return already known deployments", async () => {
+    const deployments = Wido.getDeployments()
+
+    expect(deployments.length).toBeGreaterThanOrEqual(8);
+
+    const existingDeployments = [
+      'mainnet_usdc',
+      'mainnet_weth',
+      'polygon_usdc',
+      'goerli_usdc',
+      'goerli_weth',
+      'mumbai_usdc',
+      'goerli_optimism_usdc',
+      'fuji_usdc'
+    ]
+
+    for (const deployment of deployments) {
+      expect(existingDeployments).toContain(deployment)
+    }
+  })
+
+  it("should return known supported collaterals", async () => {
+    const wido = new Wido(getWallet(), "mainnet_usdc")
+    const supportedAssets = await wido.getSupportedCollaterals();
+
+    expect(supportedAssets.length).toBeGreaterThanOrEqual(5);
+
+    const expectedAssets = [
+      '0xc00e94Cb662C3520282E6f5717214004A7f26888',
+      '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+      '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
+      '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+    ];
+
+    for (const asset of expectedAssets) {
+      expect(supportedAssets).toContain(asset);
+    }
+  })
+
+  it("should return user collaterals", async () => {
+    const wido = new Wido(getWallet(), "mainnet_usdc")
+    const userCollaterals = await wido.getUserCollaterals();
+
+    expect(userCollaterals.length).toBeGreaterThanOrEqual(5);
+
+    for (const { balance } of userCollaterals) {
+      expect(balance).toEqual(BigNumber.from(0));
+    }
+  })
+
+  it("should quote a swap", async () => {
+    const wido = new Wido(getWallet(), "mainnet_usdc")
+    const wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+    const comp = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
+    const swapQuote = await wido.getCollateralSwapRoute(wbtc, comp);
+
+    expect(swapQuote.isSupported).toBeTruthy();
+    expect(swapQuote.fromCollateral).toEqual(wbtc);
+    expect(swapQuote.toCollateral).toEqual(comp);
+  })
+
+  it("should have an initial empty position", async () => {
+    const wido = new Wido(getWallet(), "mainnet_usdc");
+
+    const position = await wido.getUserCurrentPosition()
+
+    expect(position.collateralValue).toEqual(0);
+    expect(position.liquidationPoint).toEqual(0);
+    expect(position.borrowCapacity).toEqual(0);
+    expect(position.borrowAvailable).toEqual(0);
+  })
+
+  it("should have positive position after deposit", async () => {
+    // Arrange
+    const signer = getWallet();
+    const wido = new Wido(signer, "mainnet_usdc");
+    const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
+
+    // prepare collateral
+    const amount = BigNumber.from(10000000000)
+    await getWeth(amount, signer);
+    await approveWeth(amount, cometAddress, signer);
+
+    // deposit into Comet contract
+    const contract = getCometContract(cometAddress, signer);
+    await (await contract.functions.supply(WETH, amount)).wait();
+
+    // Act
+    const position = await wido.getUserCurrentPosition()
+
+    // Assert
+    expect(position.collateralValue).toBeGreaterThan(0);
+    expect(position.liquidationPoint).toEqual(0);
+    expect(position.borrowCapacity).toBeGreaterThan(0);
+    expect(position.borrowAvailable).toBeGreaterThan(0);
+
+    // Clean (it's a "permanent" fork)
+    await (await contract.functions.withdraw(WETH, amount)).wait();
+  })
+
+  it("should give a predicted position", async () => {
+    const signer = getWallet();
+    const wido = new Wido(signer, "mainnet_usdc");
+    const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
+
+    // prepare collateral
+    const amount = BigNumber.from("1000000000000000000")
+    await getWeth(amount, signer);
+    await approveWeth(amount, cometAddress, signer);
+
+    // deposit into Comet contract
+    const contract = getCometContract(cometAddress, signer);
+    await (await contract.functions.supply(WETH, amount)).wait();
+
+    // get swap quote
+    const swapQuote = await wido.getCollateralSwapRoute(WETH, WBTC);
+    expect(swapQuote.fromCollateralAmount).toEqual(amount.toString());
+
+    // Act
+    const currentPosition = await wido.getUserCurrentPosition()
+    const predictedPosition = await wido.getUserPredictedPosition(swapQuote)
+
+    // Assert (we expect lose of value due to swap slippage)
+    expect(predictedPosition.collateralValue).toBeLessThan(currentPosition.collateralValue);
+    expect(predictedPosition.liquidationPoint).toEqual(currentPosition.liquidationPoint);
+    expect(predictedPosition.borrowCapacity).toBeLessThan(currentPosition.borrowCapacity);
+    expect(predictedPosition.borrowAvailable).toBeLessThan(currentPosition.borrowAvailable);
+
+    // Clean (it's a "permanent" fork)
+    await (await contract.functions.withdraw(WETH, amount)).wait();
+  })
+
+  it("should execute a collateral swap", async () => {
+    const signer = getWallet();
+    const wido = new Wido(signer, "mainnet_usdc");
+    const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
+    const loanAmount = BigNumber.from(500 * 10 ** 6);
+
+    // prepare collateral
+    const wbtcAmount = await getERC20(WBTC, signer);
+
+    // deposit into Comet contract
+    await approveERC20(WBTC, wbtcAmount, cometAddress, signer);
+    const contract = getCometContract(cometAddress, signer);
+    await (await contract.functions.supply(WBTC, wbtcAmount)).wait();
+
+    await (await contract.functions.withdraw(USDC, loanAmount)).wait();
+
+    // get swap quote
+    const swapQuote = await wido.getCollateralSwapRoute(WBTC, WETH);
+    expect(swapQuote.fromCollateralAmount).toEqual(wbtcAmount.toString());
+
+    const predictedPosition = await wido.getUserPredictedPosition(swapQuote)
+
+    // Act
+    await wido.swapCollateral(swapQuote)
+    const currentPosition = await wido.getUserCurrentPosition()
+
+    // Assert
+    const wethDeposited = await contract.callStatic.collateralBalanceOf(signer.address, WETH);
+    expect(BigInt(wethDeposited)).toBeGreaterThanOrEqual(BigInt(swapQuote.toCollateralAmount));
+    expect(currentPosition.collateralValue).toBeGreaterThanOrEqual(predictedPosition.collateralValue);
+
+    // Clean (it's a "permanent" fork)
+    await approveERC20(USDC, loanAmount, cometAddress, signer);
+    await (await contract.functions.supply(USDC, loanAmount)).wait();
+    await (await contract.functions.withdraw(WETH, swapQuote.toCollateralAmount)).wait();
+  }, 40000)
+
 })
