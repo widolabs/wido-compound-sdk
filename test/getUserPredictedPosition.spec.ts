@@ -1,16 +1,38 @@
-import { it } from "vitest"
+import { expect, it } from "vitest"
 import { Wido } from '../src';
-import { getWallet } from './helpers';
+import { approveWeth, getCometContract, getWallet, getWeth, WBTC, WETH } from './helpers';
+import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
+import { BigNumber } from 'ethers';
 
 
-it("should pass", async () => {
-  const wido = new Wido(getWallet(137), "polygon_usdc");
+it("should give a predicted position", async () => {
+  const signer = getWallet();
+  const wido = new Wido(signer, "mainnet_usdc");
+  const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
 
-  const wmatic = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
-  const wbtc = "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6";
-  const swapQuote = await wido.getCollateralSwapRoute(wmatic, wbtc);
+  // prepare collateral
+  const amount = BigNumber.from("1000000000000000000")
+  await getWeth(amount, signer);
+  await approveWeth(amount, cometAddress, signer);
 
-  const position = await wido.getUserPredictedPosition(swapQuote)
+  // deposit into Comet contract
+  const contract = getCometContract(cometAddress, signer);
+  await (await contract.functions.supply(WETH, amount)).wait();
 
-  console.log(position)
+  // get swap quote
+  const swapQuote = await wido.getCollateralSwapRoute(WETH, WBTC);
+  expect(swapQuote.fromCollateralAmount).toEqual(amount.toString());
+
+  // Act
+  const currentPosition = await wido.getUserCurrentPosition()
+  const predictedPosition = await wido.getUserPredictedPosition(swapQuote)
+
+  // Assert (we expect lose of value due to swap slippage)
+  expect(predictedPosition.collateralValue).toBeLessThan(currentPosition.collateralValue);
+  expect(predictedPosition.liquidationPoint).toEqual(currentPosition.liquidationPoint);
+  expect(predictedPosition.borrowCapacity).toBeLessThan(currentPosition.borrowCapacity);
+  expect(predictedPosition.borrowAvailable).toBeLessThan(currentPosition.borrowAvailable);
+
+  // Clean (it's a "permanent" fork)
+  await (await contract.functions.withdraw(WETH, amount)).wait();
 })

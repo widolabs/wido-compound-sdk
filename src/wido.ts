@@ -144,7 +144,7 @@ export class Wido {
 
     const supported = quoteResponse.isSupported;
     const toAmount = supported && quoteResponse.minToTokenAmount
-      ? String(quoteResponse.minToTokenAmount)
+      ? quoteResponse.minToTokenAmount
       : "0";
 
     return {

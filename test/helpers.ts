@@ -1,8 +1,9 @@
 import { BigNumber, Contract, ethers, Wallet } from 'ethers';
 
 export const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+export const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 
-export function getWallet(chainId?: number): Wallet {
+export function getWallet(): Wallet {
   let url = "http://localhost:8545"
   let network = "mainnet";
   const provider = new ethers.providers.JsonRpcProvider(url, network);
@@ -18,6 +19,18 @@ export function getWethContract(signer: Wallet): Contract {
     [
       "function deposit() public payable",
       "function approve(address, uint) public returns (bool)",
+    ],
+    signer
+  );
+}
+
+export function getCometContract(address: string, signer: Wallet): Contract {
+  return new ethers.Contract(
+    address,
+    [
+      "function supply(address asset, uint256 amount) external",
+      "function withdraw(address asset, uint256 amount) external",
+      "function collateralBalanceOf(address account, address asset) external view returns (uint128)",
     ],
     signer
   );

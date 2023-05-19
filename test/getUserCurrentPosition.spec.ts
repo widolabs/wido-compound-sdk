@@ -1,7 +1,7 @@
 import { expect, it } from "vitest"
 import { Wido } from '../src';
-import { approveWeth, getWallet, getWeth, WETH } from './helpers';
-import { BigNumber, ethers } from 'ethers';
+import { approveWeth, getCometContract, getWallet, getWeth, WETH } from './helpers';
+import { BigNumber } from 'ethers';
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
 
 
@@ -28,14 +28,7 @@ it("should have positive position after deposit", async () => {
   await approveWeth(amount, cometAddress, signer);
 
   // deposit into Comet contract
-  const contract = new ethers.Contract(
-    cometAddress,
-    [
-      "function supply(address, uint256) external",
-      "function withdraw(address, uint256) external"
-    ],
-    signer
-  );
+  const contract = getCometContract(cometAddress, signer);
   await (await contract.functions.supply(WETH, amount)).wait();
 
   // Act
