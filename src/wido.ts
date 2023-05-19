@@ -301,7 +301,9 @@ export class Wido {
     const borrowAvailable_inBaseUnits = totalBorrowCapacity_inBaseUnits - borrowed_inBaseUnits;
 
     const borrowPercentageUsed =
-      (totalBorrowCapacity_inBaseUnits - borrowAvailable_inBaseUnits) / totalBorrowCapacity_inBaseUnits;
+      totalBorrowCapacity_inBaseUnits > 0
+        ? (totalBorrowCapacity_inBaseUnits - borrowAvailable_inBaseUnits) / totalBorrowCapacity_inBaseUnits
+        : 0;
 
     liquidationPoint_inBaseUnits *= borrowPercentageUsed;
 
