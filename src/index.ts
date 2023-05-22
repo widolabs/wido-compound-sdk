@@ -1,1 +1,1 @@
-export { Wido } from "./wido"
+export { WidoCompoundSdk } from "./wido-compound-sdk"

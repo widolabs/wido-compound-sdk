@@ -1,6 +1,6 @@
 import * as wido from "../src"
 import { it, expect, describe } from "vitest"
-import { Wido } from '../src';
+import { WidoCompoundSdk } from '../src';
 import { approveERC20, approveWeth, getCometContract, getERC20, getWallet, getWeth, USDC, WBTC, WETH } from './helpers';
 import { BigNumber } from 'ethers';
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
@@ -16,7 +16,7 @@ describe("CollateralSwap SDK", () => {
   })
 
   it("should return already known deployments", async () => {
-    const deployments = Wido.getDeployments()
+    const deployments = WidoCompoundSdk.getDeployments()
 
     expect(deployments.length).toBeGreaterThanOrEqual(8);
 
@@ -37,7 +37,7 @@ describe("CollateralSwap SDK", () => {
   })
 
   it("should return known supported collaterals", async () => {
-    const wido = new Wido(getWallet(), "mainnet_usdc")
+    const wido = new WidoCompoundSdk(getWallet(), "mainnet_usdc")
     const supportedAssets = await wido.getSupportedCollaterals();
 
     expect(supportedAssets.length).toBeGreaterThanOrEqual(5);
@@ -72,7 +72,7 @@ describe("CollateralSwap SDK", () => {
   })
 
   it("should return user collaterals", async () => {
-    const wido = new Wido(getWallet(), "mainnet_usdc")
+    const wido = new WidoCompoundSdk(getWallet(), "mainnet_usdc")
     const userCollaterals = await wido.getUserCollaterals();
 
     expect(userCollaterals.length).toBeGreaterThanOrEqual(5);
@@ -83,7 +83,7 @@ describe("CollateralSwap SDK", () => {
   })
 
   it("should quote a swap", async () => {
-    const wido = new Wido(getWallet(), "mainnet_usdc")
+    const wido = new WidoCompoundSdk(getWallet(), "mainnet_usdc")
     const wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
     const comp = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
     const swapQuote = await wido.getCollateralSwapRoute(wbtc, comp);
@@ -94,7 +94,7 @@ describe("CollateralSwap SDK", () => {
   })
 
   it("should have an initial empty position", async () => {
-    const wido = new Wido(getWallet(), "mainnet_usdc");
+    const wido = new WidoCompoundSdk(getWallet(), "mainnet_usdc");
 
     const position = await wido.getUserCurrentPosition()
 
@@ -107,7 +107,7 @@ describe("CollateralSwap SDK", () => {
   it("should have positive position after deposit", async () => {
     // Arrange
     const signer = getWallet();
-    const wido = new Wido(signer, "mainnet_usdc");
+    const wido = new WidoCompoundSdk(signer, "mainnet_usdc");
     const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
 
     // prepare collateral
@@ -134,7 +134,7 @@ describe("CollateralSwap SDK", () => {
 
   it("should give a predicted position", async () => {
     const signer = getWallet();
-    const wido = new Wido(signer, "mainnet_usdc");
+    const wido = new WidoCompoundSdk(signer, "mainnet_usdc");
     const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
 
     // prepare collateral
@@ -166,7 +166,7 @@ describe("CollateralSwap SDK", () => {
 
   it("should execute a collateral swap", async () => {
     const signer = getWallet();
-    const wido = new Wido(signer, "mainnet_usdc");
+    const wido = new WidoCompoundSdk(signer, "mainnet_usdc");
     const cometAddress = cometConstants.address["mainnet_usdc"].Comet;
     const loanAmount = BigNumber.from(500 * 10 ** 6);
 

@@ -15,12 +15,12 @@ import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
 import { Collaterals, CollateralSwapRoute, Position } from './types';
 import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 
-export class Wido {
+export class WidoCompoundSdk {
   private readonly comet: string;
   private readonly signer: Wallet;
 
   constructor(signer: Wallet, comet: string) {
-    Wido.validateComet(comet);
+    WidoCompoundSdk.validateComet(comet);
     this.signer = signer;
     this.comet = comet;
   }
@@ -83,9 +83,9 @@ export class Wido {
     const userAddress = await this.getUserAddress();
     const infos = await this.getAssetsInfo(cometContract);
 
-    const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
+    const { balances, prices } = await WidoCompoundSdk.getCollateralsDetails(cometContract, infos, userAddress);
 
-    return await Wido.getPositionDetails(cometContract, userAddress, infos, balances, prices);
+    return await WidoCompoundSdk.getPositionDetails(cometContract, userAddress, infos, balances, prices);
   }
 
   /**
@@ -98,7 +98,7 @@ export class Wido {
     const userAddress = await this.getUserAddress();
     const infos = await this.getAssetsInfo(cometContract);
 
-    const { balances, prices } = await Wido.getCollateralsDetails(cometContract, infos, userAddress);
+    const { balances, prices } = await WidoCompoundSdk.getCollateralsDetails(cometContract, infos, userAddress);
 
     // modify the balances to subtract the swapped balance and increase the potentially received
     // in order to compute the predicted position details
@@ -113,7 +113,7 @@ export class Wido {
       }
     })
 
-    return await Wido.getPositionDetails(cometContract, userAddress, infos, predictedBalances, prices);
+    return await WidoCompoundSdk.getPositionDetails(cometContract, userAddress, infos, predictedBalances, prices);
   }
 
   /**
@@ -304,7 +304,7 @@ export class Wido {
       );
     }
 
-    const borrowed_inBaseUnits = await Wido.getBorrowedInBaseUnits(cometContract, userAddress);
+    const borrowed_inBaseUnits = await WidoCompoundSdk.getBorrowedInBaseUnits(cometContract, userAddress);
     const borrowAvailable_inBaseUnits = totalBorrowCapacity_inBaseUnits - borrowed_inBaseUnits;
 
     const borrowPercentageUsed =
@@ -329,7 +329,7 @@ export class Wido {
    * @private
    */
   private static async getBorrowedInBaseUnits(cometContract: Contract, userAddress: string): Promise<number> {
-    const { basePrice, baseDecimals } = await Wido.getBaseTokenDetails(cometContract);
+    const { basePrice, baseDecimals } = await WidoCompoundSdk.getBaseTokenDetails(cometContract);
     const borrowBalance = +(await cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
     return borrowBalance / Math.pow(10, baseDecimals) * basePrice;
   }

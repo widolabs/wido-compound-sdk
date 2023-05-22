@@ -5,8 +5,8 @@ export default defineConfig({
   build: {
     sourcemap: true,
     lib: {
-      entry: "./src/wido.ts",
-      name: "wido",
+      entry: "./src/index.ts",
+      name: "wido-compound-sdk",
       fileName: (format) => (format === "es" ? "wido.mjs" : "wido.js"),
     },
     rollupOptions: {
