@@ -119,10 +119,12 @@ export class WidoCompoundSdk {
    * Quotes the possible outcome of the collateral swap
    * @param fromCollateral
    * @param toCollateral
+   * @param amount
    */
   public async getCollateralSwapRoute(
     fromCollateral: string,
-    toCollateral: string
+    toCollateral: string,
+    amount: BigNumber
   ): Promise<CollateralSwapRoute> {
     const chainId = getChainId(this.comet);
     const collaterals = await this.getUserCollaterals();
@@ -130,12 +132,16 @@ export class WidoCompoundSdk {
     const fromAsset = pickAsset(collaterals, fromCollateral);
     const toAsset = pickAsset(collaterals, toCollateral);
 
+    if (amount.gt(fromAsset.balance)) {
+      throw new Error("From amount bigger than balance");
+    }
+
     const quoteRequest: QuoteRequest = {
       fromChainId: chainId,
       fromToken: fromAsset.address,
       toChainId: chainId,
       toToken: toAsset.address,
-      amount: fromAsset.balance.toString(),
+      amount: amount.toString(),
       user: widoCollateralSwapAddress[chainId],
     }
 

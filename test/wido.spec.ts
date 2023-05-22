@@ -86,7 +86,7 @@ describe("CollateralSwap SDK", () => {
     const wido = new WidoCompoundSdk(getWallet(), "mainnet_usdc")
     const wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
     const comp = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
-    const swapQuote = await wido.getCollateralSwapRoute(wbtc, comp);
+    const swapQuote = await wido.getCollateralSwapRoute(wbtc, comp, BigNumber.from(0));
 
     expect(swapQuote.isSupported).toBeTruthy();
     expect(swapQuote.fromCollateral).toEqual(wbtc);
@@ -147,7 +147,7 @@ describe("CollateralSwap SDK", () => {
     await (await contract.functions.supply(WETH, amount)).wait();
 
     // get swap quote
-    const swapQuote = await wido.getCollateralSwapRoute(WETH, WBTC);
+    const swapQuote = await wido.getCollateralSwapRoute(WETH, WBTC, amount);
     expect(swapQuote.fromCollateralAmount).toEqual(amount.toString());
 
     // Act
@@ -181,7 +181,7 @@ describe("CollateralSwap SDK", () => {
     await (await contract.functions.withdraw(USDC, loanAmount)).wait();
 
     // get swap quote
-    const swapQuote = await wido.getCollateralSwapRoute(WBTC, WETH);
+    const swapQuote = await wido.getCollateralSwapRoute(WBTC, WETH, wbtcAmount);
     expect(swapQuote.fromCollateralAmount).toEqual(wbtcAmount.toString());
 
     const predictedPosition = await wido.getUserPredictedPosition(swapQuote)
