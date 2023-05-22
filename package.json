@@ -7,6 +7,9 @@
     "src",
     "docs"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/wido.js",
   "module": "dist/wido.mjs",
   "typings": "dist/wido.d.ts",
