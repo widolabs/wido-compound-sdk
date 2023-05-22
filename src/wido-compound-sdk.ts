@@ -65,6 +65,7 @@ export class WidoCompoundSdk {
       .then(results => {
         return results.map((result, index) => {
           return {
+            name: collaterals[index].name,
             address: collaterals[index].address,
             balance: result[0]
           }

@@ -49,13 +49,13 @@ export function getChainId(comet: string): number {
 /**
  * Seek and return a collateral from the list, by address
  * @param collaterals
- * @param address
+ * @param asset
  */
-export function pickAsset(collaterals: Collaterals, address: string): Collateral {
+export function pickAsset(collaterals: Collaterals, asset: string): Collateral {
   for (const collateral of collaterals) {
-    if (collateral.address === address) {
+    if (collateral.name === asset) {
       return collateral
     }
   }
-  throw new Error(`Collateral ${address} not supported`);
+  throw new Error(`Collateral ${asset} not supported`);
 }
