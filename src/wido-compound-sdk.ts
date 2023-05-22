@@ -1,25 +1,23 @@
-import { ethers, Wallet, ContractReceipt, Contract, BigNumber } from 'ethers';
+import { ethers, ContractReceipt, Contract, BigNumber, Signer, Signature, TypedDataDomain } from 'ethers';
+import type { TypedDataSigner } from "@ethersproject/abstract-signer";
 import {
   AllowSignatureMessage,
-  AllowTypes,
   AssetInfo,
-  EIP712Domain,
-  Signature
 } from '@compound-finance/compound-js/dist/nodejs/types';
 import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
-import { sign } from './utils/EIP712';
 import { getChainId, getCometAddress, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
 import { Collaterals, CollateralSwapRoute, Position } from './types';
 import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
+import { splitSignature } from 'ethers/lib/utils';
 
 export class WidoCompoundSdk {
   private readonly comet: string;
-  private readonly signer: Wallet;
+  private readonly signer: Signer & TypedDataSigner;
 
-  constructor(signer: Wallet, comet: string) {
+  constructor(signer: Signer & TypedDataSigner, comet: string) {
     WidoCompoundSdk.validateComet(comet);
     this.signer = signer;
     this.comet = comet;
@@ -353,6 +351,10 @@ export class WidoCompoundSdk {
   }> {
     const userAddress = await this.getUserAddress()
 
+    if (!this.signer.provider) {
+      throw new Error("Signer without provider");
+    }
+
     const contract = new ethers.Contract(
       cometAddress,
       Comet_ABI,
@@ -427,16 +429,15 @@ export class WidoCompoundSdk {
       throw Error('Compound Comet [createAllowSignature] | Argument `manager` must be a valid Ethereum address.');
     }
 
-    const domain: EIP712Domain = {
+    const domain: TypedDataDomain = {
       name,
       version,
       chainId,
       verifyingContract: cometAddress
     };
 
-    const primaryType = 'Authorization';
-
     const expiry = 10e9;
+
     const message: AllowSignatureMessage = {
       owner,
       manager,
@@ -445,13 +446,7 @@ export class WidoCompoundSdk {
       expiry
     };
 
-    const types: AllowTypes = {
-      EIP712Domain: [
-        { name: 'name', type: 'string' },
-        { name: 'version', type: 'string' },
-        { name: 'chainId', type: 'uint256' },
-        { name: 'verifyingContract', type: 'address' },
-      ],
+    const types = {
       Authorization: [
         { name: 'owner', type: 'address' },
         { name: 'manager', type: 'address' },
@@ -461,7 +456,9 @@ export class WidoCompoundSdk {
       ]
     };
 
-    return await sign(domain, primaryType, message, types, this.signer);
+    const sig = await this.signer._signTypedData(domain, types, message);
+
+    return splitSignature(sig);
   }
 
   /**
@@ -469,13 +466,7 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getUserAddress(): Promise<string> {
-    let userAddress = this.signer.address;
-
-    if (!userAddress && this.signer.getAddress) {
-      userAddress = await this.signer.getAddress();
-    }
-
-    return userAddress;
+    return this.signer.getAddress();
   }
 
   /**
@@ -492,7 +483,7 @@ export class WidoCompoundSdk {
    * @param chainId
    * @param signer
    */
-  private async getWidoContract(chainId: number, signer: Wallet): Promise<Contract> {
+  private async getWidoContract(chainId: number, signer: Signer): Promise<Contract> {
     await this.checkWalletInRightChain();
     if (!(chainId in widoCollateralSwapAddress)) {
       throw new Error(`WidoCollateralSwap not deployed on chain ${chainId}`);

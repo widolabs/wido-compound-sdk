@@ -10,7 +10,7 @@ describe("CollateralSwap SDK", () => {
   it("should have named exports", () => {
     expect(Object.keys(wido)).toMatchInlineSnapshot(`
     [
-      "Wido",
+      "WidoCompoundSdk",
     ]
   `)
   })
