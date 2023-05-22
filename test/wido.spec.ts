@@ -43,15 +43,31 @@ describe("CollateralSwap SDK", () => {
     expect(supportedAssets.length).toBeGreaterThanOrEqual(5);
 
     const expectedAssets = [
-      '0xc00e94Cb662C3520282E6f5717214004A7f26888',
-      '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
-      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-      '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
-      '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+      {
+        name: "COMP",
+        address: '0xc00e94Cb662C3520282E6f5717214004A7f26888'
+      },
+      {
+        name: "WBTC",
+        address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
+      },
+      {
+        name: "WETH",
+        address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+      },
+      {
+        name: "UNI",
+        address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984'
+      },
+      {
+        name: "LINK",
+        address: '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+      },
     ];
 
     for (const asset of expectedAssets) {
-      expect(supportedAssets).toContain(asset);
+      const found = supportedAssets.some(a => a.name == asset.name && a.address == asset.address)
+      expect(found).toBeTruthy();
     }
   })
 

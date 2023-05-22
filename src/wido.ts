@@ -35,10 +35,19 @@ export class Wido {
   /**
    * Returns a list of the collaterals supported by the given Comet
    */
-  public async getSupportedCollaterals(): Promise<string[]> {
+  public async getSupportedCollaterals(): Promise<{
+    name: string
+    address: string
+  }[]> {
     const cometContract = await this.getCometContract();
     const infos = await this.getAssetsInfo(cometContract);
-    return infos.map(asset => asset.asset)
+    const names = Compound.comet.getSupportedCollaterals(this.comet);
+    return infos.map((asset, i) => {
+      return {
+        name: names[i],
+        address: asset.asset,
+      }
+    })
   }
 
   /**
@@ -51,14 +60,14 @@ export class Wido {
     const userAddress = this.getUserAddress();
 
     const calls = collaterals.map(collateral => {
-      return cometContract.callStatic.userCollateral(userAddress, collateral);
+      return cometContract.callStatic.userCollateral(userAddress, collateral.address);
     })
 
     return await Promise.all(calls)
       .then(results => {
         return results.map((result, index) => {
           return {
-            address: collaterals[index],
+            address: collaterals[index].address,
             balance: result[0]
           }
         })
