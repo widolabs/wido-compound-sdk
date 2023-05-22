@@ -9,7 +9,7 @@ import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
 import { getChainId, getCometAddress, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
-import { Collaterals, CollateralSwapRoute, Position } from './types';
+import { Assets, CollateralSwapRoute, Position, UserAssets } from './types';
 import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 import { splitSignature } from 'ethers/lib/utils';
 
@@ -33,11 +33,7 @@ export class WidoCompoundSdk {
   /**
    * Returns a list of the collaterals supported by the given Comet
    */
-  public async getSupportedCollaterals(): Promise<{
-    name: string
-    address: string
-    decimals: number
-  }[]> {
+  public async getSupportedCollaterals(): Promise<Assets> {
     const cometContract = await this.getCometContract();
     const names = Compound.comet.getSupportedCollaterals(this.comet);
     const infos = await this.getAssetsInfo(cometContract);
@@ -54,7 +50,7 @@ export class WidoCompoundSdk {
   /**
    * Returns a list of user owned collaterals on the given Comet
    */
-  public async getUserCollaterals(): Promise<Collaterals> {
+  public async getUserCollaterals(): Promise<UserAssets> {
     const cometContract = await this.getCometContract();
 
     const collaterals = await this.getSupportedCollaterals()

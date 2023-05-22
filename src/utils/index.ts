@@ -1,5 +1,5 @@
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
-import { Collateral, Collaterals } from '../types';
+import { UserAsset, UserAssets } from '../types';
 
 const MAINNET_ID = 1;
 const GOERLI_ID = 5;
@@ -51,7 +51,7 @@ export function getChainId(comet: string): number {
  * @param collaterals
  * @param asset
  */
-export function pickAsset(collaterals: Collaterals, asset: string): Collateral {
+export function pickAsset(collaterals: UserAssets, asset: string): UserAsset {
   for (const collateral of collaterals) {
     if (collateral.name === asset) {
       return collateral
