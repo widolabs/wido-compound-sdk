@@ -3,6 +3,7 @@ import { BigNumber } from 'ethers';
 export interface Collateral {
   name: string,
   address: string,
+  decimals: number,
   balance: BigNumber
 }
 

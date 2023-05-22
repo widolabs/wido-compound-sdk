@@ -36,14 +36,17 @@ export class WidoCompoundSdk {
   public async getSupportedCollaterals(): Promise<{
     name: string
     address: string
+    decimals: number
   }[]> {
     const cometContract = await this.getCometContract();
-    const infos = await this.getAssetsInfo(cometContract);
     const names = Compound.comet.getSupportedCollaterals(this.comet);
+    const infos = await this.getAssetsInfo(cometContract);
+    const decimals = await this.getDecimals(infos);
     return infos.map((asset, i) => {
       return {
         name: names[i],
         address: asset.asset,
+        decimals: Number(decimals[i].toString()),
       }
     })
   }
@@ -67,6 +70,7 @@ export class WidoCompoundSdk {
           return {
             name: collaterals[index].name,
             address: collaterals[index].address,
+            decimals: collaterals[index].decimals,
             balance: result[0]
           }
         })
@@ -230,6 +234,28 @@ export class WidoCompoundSdk {
   }
 
   /**
+   * Returns the decimals of all the assets
+   * @private
+   */
+  private async getDecimals(infos: AssetInfo[]): Promise<number[]> {
+    if (!this.signer.provider) {
+      throw new Error("Signer without provider");
+    }
+    const calls = [];
+    for (let i = 0; i < infos.length; i++) {
+      const contract = new Contract(
+        infos[i].asset,
+        [
+          "function decimals() external returns(uint256)"
+        ],
+        new providers.MulticallProvider(this.signer.provider)
+      );
+      calls.push(contract.callStatic.decimals());
+    }
+    return await Promise.all(calls);
+  }
+
+  /**
    * Fetch and return the base token details of a Comet
    * @private
    */
@@ -357,16 +383,7 @@ export class WidoCompoundSdk {
     revokeSignature: Signature
   }> {
     const userAddress = await this.getUserAddress()
-
-    if (!this.signer.provider) {
-      throw new Error("Signer without provider");
-    }
-
-    const contract = new ethers.Contract(
-      cometAddress,
-      Comet_ABI,
-      new providers.MulticallProvider(this.signer.provider)
-    );
+    const contract = await this.getCometContract()
 
     const results = await Promise.all([
       contract.callStatic.userNonce(userAddress),
@@ -481,8 +498,18 @@ export class WidoCompoundSdk {
    */
   private async getCometContract(): Promise<Contract> {
     await this.checkWalletInRightChain();
+
+    if (!this.signer.provider) {
+      throw new Error("Signer without provider");
+    }
+
     const cometAddress = getCometAddress(this.comet)
-    return new Contract(cometAddress, Comet_ABI, this.signer.provider);
+
+    return new Contract(
+      cometAddress,
+      Comet_ABI,
+      new providers.MulticallProvider(this.signer.provider)
+    );
   }
 
   /**
