@@ -30,3 +30,11 @@ export interface Position {
   borrowCapacity: number
   borrowAvailable: number
 }
+
+export interface Deployment {
+  chainId: number
+  asset: string
+  cometKey: string
+}
+
+export type Deployments = Deployment[]

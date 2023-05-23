@@ -7,9 +7,9 @@ import {
 import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
-import { getChainId, getCometAddress, pickAsset, widoCollateralSwapAddress } from './utils';
+import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
-import { Assets, CollateralSwapRoute, Position, UserAssets } from './types';
+import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 import { splitSignature } from 'ethers/lib/utils';
 
@@ -26,8 +26,13 @@ export class WidoCompoundSdk {
   /**
    * Returns a list of the existing deployments
    */
-  public static getDeployments(): string[] {
-    return Compound.comet.getSupportedDeployments();
+  public static getDeployments(): Deployments {
+    const deployments = Compound.comet.getSupportedDeployments();
+    const result = [];
+    for (const deployment of deployments) {
+      result.push(getDeploymentDetails(deployment));
+    }
+    return result;
   }
 
   /**
@@ -541,7 +546,7 @@ export class WidoCompoundSdk {
    */
   private static validateComet(comet: string) {
     const existingDeployments = this.getDeployments()
-    if (!existingDeployments.includes(comet)) {
+    if (!existingDeployments.some(d => d.cometKey === comet)) {
       throw new Error("Comet not supported");
     }
   }

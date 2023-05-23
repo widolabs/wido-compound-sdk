@@ -1,5 +1,5 @@
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
-import { UserAsset, UserAssets } from '../types';
+import { Deployment, UserAsset, UserAssets } from '../types';
 
 const MAINNET_ID = 1;
 const GOERLI_ID = 5;
@@ -39,11 +39,24 @@ export function getCometAddress(cometKey: string): string {
  * @param comet
  */
 export function getChainId(comet: string): number {
-  const array = comet.split("_");
-  array.pop();
-  const chainKey = array.join("_");
+  return getDeploymentDetails(comet).chainId
+}
+
+/**
+ * Returns the deployment details of a Comet
+ * @param comet
+ */
+export function getDeploymentDetails(comet: string): Deployment {
+  const parts = comet.split("_");
+  const asset = parts.pop() as string;
+  const chainKey = parts.join("_");
   // @ts-ignore
-  return keyToId[chainKey];
+  const chainId = keyToId[chainKey];
+  return {
+    chainId: chainId,
+    asset: asset,
+    cometKey: comet
+  }
 }
 
 /**

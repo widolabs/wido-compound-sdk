@@ -1,6 +1,6 @@
 import * as wido from "../src"
 import { it, expect, describe } from "vitest"
-import { WidoCompoundSdk } from '../src';
+import { Deployments, WidoCompoundSdk } from '../src';
 import { approveERC20, approveWeth, getCometContract, getERC20, getWallet, getWeth, USDC, WBTC, WETH } from './helpers';
 import { BigNumber } from 'ethers';
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
@@ -20,19 +20,58 @@ describe("CollateralSwap SDK", () => {
 
     expect(deployments.length).toBeGreaterThanOrEqual(8);
 
-    const existingDeployments = [
-      'mainnet_usdc',
-      'mainnet_weth',
-      'polygon_usdc',
-      'goerli_usdc',
-      'goerli_weth',
-      'mumbai_usdc',
-      'goerli_optimism_usdc',
-      'fuji_usdc'
+    const existingDeployments: Deployments = [
+      {
+        chainId: 1,
+        asset: "usdc",
+        cometKey: "mainnet_usdc"
+      },
+      {
+        chainId: 1,
+        asset: "weth",
+        cometKey: "mainnet_weth"
+      },
+      {
+        chainId: 137,
+        asset: "usdc",
+        cometKey: "polygon_usdc"
+      },
+      {
+        chainId: 5,
+        asset: "usdc",
+        cometKey: "goerli_usdc"
+      },
+      {
+        chainId: 5,
+        asset: "weth",
+        cometKey: "goerli_weth"
+      },
+      {
+        chainId: 80001,
+        asset: "usdc",
+        cometKey: "mumbai_usdc"
+      },
+      {
+        chainId: 420,
+        asset: "usdc",
+        cometKey: "goerli_optimism_usdc"
+      },
+      {
+        chainId: 43113,
+        asset: "usdc",
+        cometKey: "fuji_usdc"
+      },
     ]
 
     for (const deployment of deployments) {
-      expect(existingDeployments).toContain(deployment)
+      const found = existingDeployments.some(d => {
+        return (
+          d.asset === deployment.asset &&
+          d.chainId === deployment.chainId &&
+          d.cometKey === deployment.cometKey
+        )
+      })
+      expect(found).toBeTruthy();
     }
   })
 
