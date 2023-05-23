@@ -160,7 +160,10 @@ export class WidoCompoundSdk {
     })
 
     const supported = quoteResponse.isSupported;
-    const toAmount = supported && quoteResponse.minToTokenAmount
+    const toAmount = supported && quoteResponse.toTokenAmount
+      ? quoteResponse.toTokenAmount
+      : "0";
+    const minToAmount = supported && quoteResponse.minToTokenAmount
       ? quoteResponse.minToTokenAmount
       : "0";
 
@@ -172,7 +175,8 @@ export class WidoCompoundSdk {
       fromCollateral: fromAsset.address,
       fromCollateralAmount: fromAsset.balance.toString(),
       toCollateral: toAsset.address,
-      toCollateralAmount: toAmount
+      toCollateralAmount: toAmount,
+      toCollateralMinAmount: minToAmount,
     }
   }
 
@@ -199,7 +203,7 @@ export class WidoCompoundSdk {
     }
     const finalCollateral = {
       addr: swapQuote.toCollateral,
-      amount: swapQuote.toCollateralAmount
+      amount: swapQuote.toCollateralMinAmount
     }
     const sigs = {
       allow: allowSignature,
