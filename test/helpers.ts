@@ -1,5 +1,5 @@
 import { BigNumber, Contract, ethers, Wallet } from 'ethers';
-import { getWidoSpender, quote, useLocalApi } from 'wido';
+import { getWidoSpender, quote } from 'wido';
 
 export const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 export const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
@@ -75,8 +75,6 @@ export async function getERC20(asset: string, signer: Wallet) {
   const amount = BigNumber.from("1000000000000000000")
   await getWeth(amount, signer);
   const chainId = await signer.getChainId()
-
-  useLocalApi(); // REMOVE
 
   const quoteResponse = await quote({
     fromChainId: chainId,

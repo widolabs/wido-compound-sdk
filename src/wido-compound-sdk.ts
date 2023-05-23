@@ -8,7 +8,7 @@ import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { Comet_ABI } from './types/comet';
 import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
-import { quote, QuoteRequest, useLocalApi, getWidoSpender } from 'wido';
+import { quote, QuoteRequest, getWidoSpender } from 'wido';
 import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 import { splitSignature } from 'ethers/lib/utils';
@@ -150,7 +150,6 @@ export class WidoCompoundSdk {
       user: widoCollateralSwapAddress[chainId],
     }
 
-    useLocalApi(); // REMOVE
     const quoteResponse = await quote(quoteRequest);
     const tokenManager = await getWidoSpender({
       chainId: chainId,
