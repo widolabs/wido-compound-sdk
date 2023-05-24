@@ -7,22 +7,18 @@ Learn more about Wido on <https://joinwido.com>.
 ## Installation
 
 ```sh
-yarn add wido-compound-sdk
+yarn add @widolabs/collateral-swap-sdk
 ```
 
 or
 
 ```sh
-npm install --save wido-compound-sdk
+npm install --save @widolabs/collateral-swap-sdk
 ```
 
 ## Getting started
 
-<https://docs.joinwido.com/integrate-wido/wido-javascript-sdk>
-
-## API Reference
-
-<https://unpkg.com/wido@latest/docs/index.html>
+// TBD
 
 ## Features
 
