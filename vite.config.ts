@@ -1,4 +1,5 @@
 import { defineConfig } from "vite"
+import dts from 'vite-plugin-dts';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -7,7 +8,7 @@ export default defineConfig({
     lib: {
       entry: "./src/index.ts",
       name: "wido-compound-sdk",
-      fileName: (format) => (format === "es" ? "wido.mjs" : "wido.js"),
+      fileName: (format) => (format === "es" ? "index.mjs" : "index.js"),
     },
     rollupOptions: {
       output: {
@@ -15,4 +16,9 @@ export default defineConfig({
       },
     },
   },
+  plugins: [
+    dts({
+      insertTypesEntry: true,
+    }),
+  ]
 })

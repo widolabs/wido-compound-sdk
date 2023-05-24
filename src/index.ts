@@ -1,3 +1,5 @@
 export { WidoCompoundSdk } from "./wido-compound-sdk"
 
-export * from "./types"
+export type {
+  Asset, UserAsset, Assets, UserAssets, CollateralSwapRoute, Position, Deployment, Deployments
+} from "./types"

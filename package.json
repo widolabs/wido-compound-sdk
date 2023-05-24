@@ -1,21 +1,20 @@
 {
   "name": "@widolabs/collateral-swap-sdk",
   "license": "UNLICENSED",
-  "version": "0.0.2",
+  "version": "0.0.3",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "src",
-    "docs"
+    "dist/**/*",
+    "docs/**/*"
   ],
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/wido.js",
-  "module": "dist/wido.mjs",
-  "typings": "dist/wido.d.ts",
+  "typings": "dist/index.d.ts",
   "scripts": {
     "start": "concurrently 'vite build --watch' 'yarn types --watch --preserveWatchOutput' --names 'vite,tsc' -c 'green,blue'",
-    "build": "vite build && yarn types",
+    "build": "vite build && yarn docs",
     "types": "tsc --project tsconfig.prod.json",
     "check-types": "tsc --noEmit",
     "prepublish": "yarn build && yarn docs",
@@ -45,10 +44,10 @@
     "typedoc": "^0.23.2",
     "typescript": "^4.5.4",
     "vite": "^2.9.15",
+    "vite-plugin-dts": "^2.3.0",
     "vitest": "^0.24.3",
     "wido": "^0.2.8"
   },
-  "dependencies": {},
   "keywords": [
     "wido",
     "zap",
