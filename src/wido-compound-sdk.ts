@@ -172,7 +172,7 @@ export class WidoCompoundSdk {
       data: quoteResponse.data,
       tokenManager: tokenManager,
       fromCollateral: fromAsset.address,
-      fromCollateralAmount: fromAsset.balance.toString(),
+      fromCollateralAmount: amount.toString(),
       toCollateral: toAsset.address,
       toCollateralAmount: toAmount,
       toCollateralMinAmount: minToAmount,
