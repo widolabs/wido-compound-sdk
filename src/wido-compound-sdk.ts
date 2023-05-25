@@ -1,4 +1,4 @@
-import { ethers, ContractReceipt, Contract, BigNumber, Signer, Signature, TypedDataDomain } from 'ethers';
+import { ethers, Contract, BigNumber, Signer, Signature, TypedDataDomain } from 'ethers';
 import type { TypedDataSigner } from "@ethersproject/abstract-signer";
 import {
   AllowSignatureMessage,
@@ -185,7 +185,7 @@ export class WidoCompoundSdk {
    */
   public async swapCollateral(
     swapQuote: CollateralSwapRoute
-  ): Promise<ContractReceipt> {
+  ): Promise<string> {
     const chainId = getChainId(this.comet);
     const cometAddress = getCometAddress(this.comet);
     const widoCollateralSwapContract = await this.getWidoContract(chainId, this.signer);
@@ -222,7 +222,7 @@ export class WidoCompoundSdk {
       cometAddress
     );
 
-    return tx.wait();
+    return (await tx.wait()).transactionHash;
   }
 
   /**

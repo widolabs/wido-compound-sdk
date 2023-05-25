@@ -123,12 +123,12 @@ describe("CollateralSwap SDK", () => {
 
   it("should quote a swap", async () => {
     const wido = new WidoCompoundSdk(getWallet(), "mainnet_usdc")
-    const wbtc = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
+    const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const comp = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
-    const swapQuote = await wido.getCollateralSwapRoute(wbtc, comp, BigNumber.from(0));
+    const swapQuote = await wido.getCollateralSwapRoute("WETH", "COMP", BigNumber.from(0));
 
     expect(swapQuote.isSupported).toBeTruthy();
-    expect(swapQuote.fromCollateral).toEqual(wbtc);
+    expect(swapQuote.fromCollateral).toEqual(weth);
     expect(swapQuote.toCollateral).toEqual(comp);
   })
 
@@ -186,7 +186,7 @@ describe("CollateralSwap SDK", () => {
     await (await contract.functions.supply(WETH, amount)).wait();
 
     // get swap quote
-    const swapQuote = await wido.getCollateralSwapRoute(WETH, WBTC, amount);
+    const swapQuote = await wido.getCollateralSwapRoute("WETH", "WBTC", amount);
     expect(swapQuote.fromCollateralAmount).toEqual(amount.toString());
 
     // Act
@@ -220,7 +220,7 @@ describe("CollateralSwap SDK", () => {
     await (await contract.functions.withdraw(USDC, loanAmount)).wait();
 
     // get swap quote
-    const swapQuote = await wido.getCollateralSwapRoute(WBTC, WETH, wbtcAmount);
+    const swapQuote = await wido.getCollateralSwapRoute("WBTC", "WETH", wbtcAmount);
     expect(swapQuote.fromCollateralAmount).toEqual(wbtcAmount.toString());
 
     const predictedPosition = await wido.getUserPredictedPosition(swapQuote)
@@ -231,13 +231,13 @@ describe("CollateralSwap SDK", () => {
 
     // Assert
     const wethDeposited = await contract.callStatic.collateralBalanceOf(signer.address, WETH);
-    expect(BigInt(wethDeposited)).toBeGreaterThanOrEqual(BigInt(swapQuote.toCollateralAmount));
+    expect(BigInt(wethDeposited)).toBeGreaterThanOrEqual(BigInt(swapQuote.toCollateralMinAmount));
     expect(currentPosition.collateralValue).toBeGreaterThanOrEqual(predictedPosition.collateralValue);
 
     // Clean (it's a "permanent" fork)
     await approveERC20(USDC, loanAmount, cometAddress, signer);
     await (await contract.functions.supply(USDC, loanAmount)).wait();
-    await (await contract.functions.withdraw(WETH, swapQuote.toCollateralAmount)).wait();
+    await (await contract.functions.withdraw(WETH, swapQuote.toCollateralMinAmount)).wait();
   }, 40000)
 
 })
