@@ -1,9 +1,9 @@
 import { BigNumber, Contract } from 'ethers';
-import { LoanProvider, Providers } from './loanProvider';
+import { LoanProviderBase, LoanProvider } from './loanProvider';
 
-export class Aave extends LoanProvider {
-  public id(): Providers {
-    return Providers.Aave;
+export class Aave extends LoanProviderBase {
+  public id(): LoanProvider {
+    return LoanProvider.Aave;
   }
 
   public async canBeUsed(): Promise<boolean> {

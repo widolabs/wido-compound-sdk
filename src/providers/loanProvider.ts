@@ -4,12 +4,12 @@ import { BigNumber, Contract } from 'ethers';
  * The order here is important, needs to be the same the enum in WidoCollateralSwap contract
  * <link>
  */
-export enum Providers {
+export enum LoanProvider {
   Equalizer = 0,
   Aave = 1,
 }
 
-export abstract class LoanProvider {
+export abstract class LoanProviderBase {
   protected readonly widoContract: Contract;
   protected readonly asset: string;
   protected readonly amount: BigNumber;

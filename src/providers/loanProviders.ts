@@ -1,10 +1,10 @@
 import { BigNumber, Contract } from 'ethers';
 import { Equalizer } from './equalizer';
 import { Aave } from './aave';
-import { LoanProvider } from './loanProvider';
+import { LoanProviderBase } from './loanProvider';
 
 export class LoanProviders {
-  private readonly providers: LoanProvider[];
+  private readonly providers: LoanProviderBase[];
 
   constructor(
     widoContract: Contract,
@@ -21,7 +21,7 @@ export class LoanProviders {
    * Search all potential providers to return the best one
    * Can return undefined in the case where no provider can be used for this asset/token
    */
-  public async getBest(): Promise<LoanProvider | undefined> {
+  public async getBest(): Promise<LoanProviderBase | undefined> {
     const firstValidProvider = this.firstValidProvider();
     // if no valid provider found, none will do
     if (!firstValidProvider) {
@@ -47,7 +47,7 @@ export class LoanProviders {
     return bestProvider;
   }
 
-  private firstValidProvider(): LoanProvider | undefined {
+  private firstValidProvider(): LoanProviderBase | undefined {
     return this.providers.find(p => p.canBeUsed())
   }
 }

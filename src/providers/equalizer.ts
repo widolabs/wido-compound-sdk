@@ -1,9 +1,9 @@
 import { BigNumber, Contract } from 'ethers';
-import { LoanProvider, Providers } from './loanProvider';
+import { LoanProviderBase, LoanProvider } from './loanProvider';
 
-export class Equalizer extends LoanProvider {
-  public id(): Providers {
-    return Providers.Equalizer;
+export class Equalizer extends LoanProviderBase {
+  public id(): LoanProvider {
+    return LoanProvider.Equalizer;
   }
 
   public async canBeUsed(): Promise<boolean> {
