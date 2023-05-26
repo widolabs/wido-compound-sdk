@@ -27,6 +27,11 @@ export abstract class LoanProviderBase {
   }
 
   /**
+   * Returns the provider type
+   */
+  abstract id(): LoanProvider;
+
+  /**
    * Computes the fee of this provider for the given asset/amount
    */
   abstract computeFee(): Promise<BigNumber>;

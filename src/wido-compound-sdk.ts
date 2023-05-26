@@ -13,6 +13,7 @@ import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoColla
 import { quote, getWidoSpender } from 'wido';
 import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { LoanProviders } from './providers/loanProviders';
+import { LoanProvider } from './providers/loanProvider';
 
 export class WidoCompoundSdk {
   private readonly comet: string;
@@ -142,6 +143,12 @@ export class WidoCompoundSdk {
       throw new Error("From amount bigger than balance");
     }
 
+    const provider = await this.getBestProvider(chainId, fromAsset.address, amount);
+
+    if (!provider) {
+      throw new Error("There is no loan provider to enable this swap");
+    }
+
     const quoteResponse = await quote({
       fromChainId: chainId,
       fromToken: fromAsset.address,
@@ -167,6 +174,7 @@ export class WidoCompoundSdk {
 
     return {
       isSupported: supported,
+      provider: provider.id(),
       to: quoteResponse.to,
       data: quoteResponse.data,
       tokenManager: tokenManager,
@@ -213,7 +221,19 @@ export class WidoCompoundSdk {
       callData: swapQuote.data,
     }
 
-    const tx = await widoCollateralSwapContract.functions.swapCollateral(
+    let contractCall;
+    switch (swapQuote.provider) {
+      case LoanProvider.Equalizer:
+        contractCall = widoCollateralSwapContract.functions.swapCollateralEqualizer;
+        break;
+      case LoanProvider.Aave:
+        contractCall = widoCollateralSwapContract.functions.swapCollateralAave;
+        break
+      default:
+        throw new Error("Wrong provider on swap quote");
+    }
+
+    const tx = await contractCall(
       existingCollateral,
       finalCollateral,
       sigs,

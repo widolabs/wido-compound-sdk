@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+import { LoanProvider } from '../providers/loanProvider';
 
 export interface Asset {
   name: string,
@@ -15,6 +16,7 @@ export type UserAssets = UserAsset[]
 
 export interface CollateralSwapRoute {
   isSupported: boolean
+  provider: LoanProvider,
   fromCollateral: string
   fromCollateralAmount: string
   toCollateral: string
