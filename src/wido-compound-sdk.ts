@@ -113,7 +113,7 @@ export class WidoCompoundSdk {
       if (asset === swapQuote.fromCollateral) {
         return balance.sub(BigNumber.from(swapQuote.fromCollateralAmount))
       } else if (asset === swapQuote.toCollateral) {
-        return balance.add(BigNumber.from(swapQuote.toCollateralAmount))
+        return balance.add(BigNumber.from(swapQuote.toCollateralMinAmount))
       } else {
         return balance;
       }

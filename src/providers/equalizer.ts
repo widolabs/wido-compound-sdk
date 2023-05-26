@@ -9,6 +9,12 @@ export class Equalizer extends LoanProviderBase {
   public async canBeUsed(): Promise<boolean> {
     const contract = await this.buildContract();
     const maxAmount = await contract.callStatic.maxFlashLoan(this.asset);
+
+    // if maxAmount is zero, asset is not supported
+    if (BigNumber.from(0).eq(maxAmount)) {
+      return false;
+    }
+
     return this.amount.lt(maxAmount);
   }
 

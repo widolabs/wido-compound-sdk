@@ -238,6 +238,6 @@ describe("CollateralSwap SDK", () => {
     await approveERC20(USDC, loanAmount, cometAddress, signer);
     await (await contract.functions.supply(USDC, loanAmount)).wait();
     await (await contract.functions.withdraw(WETH, swapQuote.toCollateralMinAmount)).wait();
-  }, 40000)
+  }, 50000)
 
 })

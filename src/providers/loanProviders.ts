@@ -22,7 +22,7 @@ export class LoanProviders {
    * Can return undefined in the case where no provider can be used for this asset/token
    */
   public async getBest(): Promise<LoanProviderBase | undefined> {
-    const firstValidProvider = this.firstValidProvider();
+    const firstValidProvider = await this.firstValidProvider();
     // if no valid provider found, none will do
     if (!firstValidProvider) {
       return;
@@ -47,7 +47,13 @@ export class LoanProviders {
     return bestProvider;
   }
 
-  private firstValidProvider(): LoanProviderBase | undefined {
-    return this.providers.find(p => p.canBeUsed())
+  private async firstValidProvider(): Promise<LoanProviderBase | undefined> {
+    for (const provider of this.providers) {
+      const valid = await provider.canBeUsed();
+      if (valid) {
+        return provider;
+      }
+    }
+    return;
   }
 }
