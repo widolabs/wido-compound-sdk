@@ -12,7 +12,7 @@ import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, getWidoSpender } from 'wido';
 import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
-import { LoanProviders } from './providers/loanProvider';
+import { LoanProviders } from './providers/loanProviders';
 
 export class WidoCompoundSdk {
   private readonly comet: string;

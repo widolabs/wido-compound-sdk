@@ -7,7 +7,26 @@ export class Aave extends LoanProvider {
   }
 
   public async canBeUsed(): Promise<boolean> {
-    return Promise.resolve(false);
+    const contract = await this.buildContract();
+    const acceptedAssets = await contract.callStatic.getReservesList();
+
+    if (!acceptedAssets.includes(this.asset)) {
+      return false;
+    }
+
+    return true;
+
+    /*
+    // Extra check to make sure there's enough liquidity
+    // for now skipping, waiting response
+    const configuration = await contract.callStatic.getConfiguration(this.asset);
+    const bitsConfiguration = BigInt(configuration.toString()).toString(2);
+
+    const borrowBits = bitsConfiguration.slice(80, 116);
+    const supplyBits = bitsConfiguration.slice(116, 152);
+    console.log(parseInt(borrowBits, 2));
+    console.log(parseInt(supplyBits, 2));
+    */
   }
 
   public async computeFee(): Promise<BigNumber> {
@@ -17,11 +36,13 @@ export class Aave extends LoanProvider {
   }
 
   private async buildContract(): Promise<Contract> {
-    const poolAddress = await super.widoContract.callStatic.POOL();
+    const poolAddress = await this.widoContract.callStatic.POOL();
     return new Contract(
       poolAddress,
       [
-        "function FLASHLOAN_PREMIUM_TOTAL() returns(uint128)"
+        "function FLASHLOAN_PREMIUM_TOTAL() returns(uint128)",
+        "function getReservesList() external view returns (address[])",
+        "function getConfiguration(address asset) external view returns (uint256)"
       ],
       this.widoContract.provider
     );

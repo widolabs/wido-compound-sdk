@@ -7,7 +7,9 @@ export class Equalizer extends LoanProvider {
   }
 
   public async canBeUsed(): Promise<boolean> {
-    return Promise.resolve(false);
+    const contract = await this.buildContract();
+    const maxAmount = await contract.callStatic.maxFlashLoan(this.asset);
+    return this.amount.lt(maxAmount);
   }
 
   public async computeFee(): Promise<BigNumber> {
@@ -20,7 +22,8 @@ export class Equalizer extends LoanProvider {
     return new Contract(
       poolAddress,
       [
-        "function flashFee(address,uint256) returns(uint256)"
+        "function flashFee(address,uint256) returns(uint256)",
+        "function maxFlashLoan(address) returns(uint256)"
       ],
       this.widoContract.provider
     );
