@@ -6,12 +6,13 @@ import {
 } from '@compound-finance/compound-js/dist/nodejs/types';
 import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
-import { Comet_ABI } from './types/comet';
-import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
-import { quote, QuoteRequest, getWidoSpender } from 'wido';
-import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
-import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 import { splitSignature } from 'ethers/lib/utils';
+import { Comet_ABI } from './types/comet';
+import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
+import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
+import { quote, getWidoSpender } from 'wido';
+import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
+import { LoanProviders } from './providers/loanProvider';
 
 export class WidoCompoundSdk {
   private readonly comet: string;
@@ -141,16 +142,14 @@ export class WidoCompoundSdk {
       throw new Error("From amount bigger than balance");
     }
 
-    const quoteRequest: QuoteRequest = {
+    const quoteResponse = await quote({
       fromChainId: chainId,
       fromToken: fromAsset.address,
       toChainId: chainId,
       toToken: toAsset.address,
       amount: amount.toString(),
       user: widoCollateralSwapAddress[chainId],
-    }
-
-    const quoteResponse = await quote(quoteRequest);
+    });
     const tokenManager = await getWidoSpender({
       chainId: chainId,
       fromToken: fromAsset.address,
@@ -188,7 +187,7 @@ export class WidoCompoundSdk {
   ): Promise<string> {
     const chainId = getChainId(this.comet);
     const cometAddress = getCometAddress(this.comet);
-    const widoCollateralSwapContract = await this.getWidoContract(chainId, this.signer);
+    const widoCollateralSwapContract = await this.getWidoContract(chainId);
 
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
@@ -223,6 +222,19 @@ export class WidoCompoundSdk {
     );
 
     return (await tx.wait()).transactionHash;
+  }
+
+  /**
+   * Find and return the best provider for the current asset/amount
+   * @param chainId
+   * @param asset
+   * @param amount
+   * @private
+   */
+  private async getBestProvider(chainId: number, asset: string, amount: BigNumber) {
+    const contract = await this.getWidoContract(chainId);
+    const providers = new LoanProviders(contract, asset, amount);
+    return providers.getBest();
   }
 
   /**
@@ -519,15 +531,14 @@ export class WidoCompoundSdk {
   /**
    * Builds an instance of the Wido contract on a given chain
    * @param chainId
-   * @param signer
    */
-  private async getWidoContract(chainId: number, signer: Signer): Promise<Contract> {
+  private async getWidoContract(chainId: number): Promise<Contract> {
     await this.checkWalletInRightChain();
     if (!(chainId in widoCollateralSwapAddress)) {
       throw new Error(`WidoCollateralSwap not deployed on chain ${chainId}`);
     }
     const address = widoCollateralSwapAddress[chainId];
-    return new Contract(address, WidoCollateralSwap_ABI, signer);
+    return new Contract(address, WidoCollateralSwap_ABI, this.signer);
   }
 
   /**

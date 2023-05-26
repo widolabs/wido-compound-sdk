@@ -1,4 +1,6 @@
 export const WidoCollateralSwap_ABI = [
+  "function equalizerProvider() returns(address)",
+  "function POOL() returns(address)",
   {
     "inputs": [
       {
