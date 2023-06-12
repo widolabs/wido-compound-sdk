@@ -134,21 +134,24 @@ export class WidoCompoundSdk {
     amount: BigNumber
   ): Promise<CollateralSwapRoute> {
     const chainId = getChainId(this.comet);
-    const collaterals = await this.getUserCollaterals();
 
+    // pick assets from collaterals list
+    const collaterals = await this.getUserCollaterals();
     const fromAsset = pickAsset(collaterals, fromCollateral);
     const toAsset = pickAsset(collaterals, toCollateral);
 
+    // check user has enough balance
     if (amount.gt(fromAsset.balance)) {
       throw new Error("From amount bigger than balance");
     }
 
+    // select best provider for this swap
     const provider = await this.getBestProvider(chainId, fromAsset.address, amount);
-
     if (!provider) {
       throw new Error("There is no loan provider to enable this swap");
     }
 
+    // quote Wido API for route
     const quoteResponse = await quote({
       fromChainId: chainId,
       fromToken: fromAsset.address,
@@ -157,6 +160,8 @@ export class WidoCompoundSdk {
       amount: amount.toString(),
       user: widoCollateralSwapAddress[chainId][provider.id()],
     });
+
+    // fetch Wido Token Manager address
     const tokenManager = await getWidoSpender({
       chainId: chainId,
       fromToken: fromAsset.address,
@@ -164,6 +169,7 @@ export class WidoCompoundSdk {
       toToken: toAsset.address
     })
 
+    // check values and set defaults
     const supported = quoteResponse.isSupported;
     const toAmount = supported && quoteResponse.toTokenAmount
       ? quoteResponse.toTokenAmount
@@ -172,6 +178,7 @@ export class WidoCompoundSdk {
       ? quoteResponse.minToTokenAmount
       : "0";
 
+    // construct & return quote
     return {
       isSupported: supported,
       provider: provider.id(),
@@ -197,12 +204,14 @@ export class WidoCompoundSdk {
     const cometAddress = getCometAddress(this.comet);
     const widoCollateralSwapContract = await this.getWidoContract(chainId, swapQuote.provider);
 
+    // create allow & revoke signatures for Comet contract
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
       cometAddress,
       widoCollateralSwapContract.address,
     );
 
+    // build collateral structs
     const existingCollateral = {
       addr: swapQuote.fromCollateral,
       amount: swapQuote.fromCollateralAmount
@@ -211,16 +220,21 @@ export class WidoCompoundSdk {
       addr: swapQuote.toCollateral,
       amount: swapQuote.toCollateralMinAmount
     }
+
+    // build signatures struct
     const sigs = {
       allow: allowSignature,
       revoke: revokeSignature
     }
+
+    // build Wido swap struct
     const widoSwap = {
       router: swapQuote.to,
       tokenManager: swapQuote.tokenManager,
       callData: swapQuote.data,
     }
 
+    // invoke Wido contract
     const tx = await widoCollateralSwapContract.functions.swapCollateral(
       existingCollateral,
       finalCollateral,
