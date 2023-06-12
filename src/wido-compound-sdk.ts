@@ -8,7 +8,7 @@ import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { splitSignature } from 'ethers/lib/utils';
 import { Comet_ABI } from './types/comet';
-import { WidoCollateralSwap_ABI } from './types/widoCollateralSwap';
+import { IWidoCollateralSwap_ABI } from './types/widoCollateralSwap';
 import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
 import { quote, getWidoSpender } from 'wido';
 import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
@@ -155,7 +155,7 @@ export class WidoCompoundSdk {
       toChainId: chainId,
       toToken: toAsset.address,
       amount: amount.toString(),
-      user: widoCollateralSwapAddress[chainId],
+      user: widoCollateralSwapAddress[chainId][provider.id()],
     });
     const tokenManager = await getWidoSpender({
       chainId: chainId,
@@ -195,7 +195,7 @@ export class WidoCompoundSdk {
   ): Promise<string> {
     const chainId = getChainId(this.comet);
     const cometAddress = getCometAddress(this.comet);
-    const widoCollateralSwapContract = await this.getWidoContract(chainId);
+    const widoCollateralSwapContract = await this.getWidoContract(chainId, swapQuote.provider);
 
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
@@ -221,19 +221,7 @@ export class WidoCompoundSdk {
       callData: swapQuote.data,
     }
 
-    let contractCall;
-    switch (swapQuote.provider) {
-      case LoanProvider.Equalizer:
-        contractCall = widoCollateralSwapContract.functions.swapCollateralEqualizer;
-        break;
-      case LoanProvider.Aave:
-        contractCall = widoCollateralSwapContract.functions.swapCollateralAave;
-        break
-      default:
-        throw new Error("Wrong provider on swap quote");
-    }
-
-    const tx = await contractCall(
+    const tx = await widoCollateralSwapContract.functions.swapCollateral(
       existingCollateral,
       finalCollateral,
       sigs,
@@ -252,8 +240,10 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getBestProvider(chainId: number, asset: string, amount: BigNumber) {
-    const contract = await this.getWidoContract(chainId);
-    const providers = new LoanProviders(contract, asset, amount);
+    if (!this.signer.provider) {
+      throw new Error("Signer without provider");
+    }
+    const providers = new LoanProviders(chainId, asset, amount, this.signer.provider);
     return providers.getBest();
   }
 
@@ -551,14 +541,15 @@ export class WidoCompoundSdk {
   /**
    * Builds an instance of the Wido contract on a given chain
    * @param chainId
+   * @param provider
    */
-  private async getWidoContract(chainId: number): Promise<Contract> {
+  private async getWidoContract(chainId: number, provider: LoanProvider): Promise<Contract> {
     await this.checkWalletInRightChain();
     if (!(chainId in widoCollateralSwapAddress)) {
       throw new Error(`WidoCollateralSwap not deployed on chain ${chainId}`);
     }
-    const address = widoCollateralSwapAddress[chainId];
-    return new Contract(address, WidoCollateralSwap_ABI, this.signer);
+    const address = widoCollateralSwapAddress[chainId][provider];
+    return new Contract(address, IWidoCollateralSwap_ABI, this.signer);
   }
 
   /**

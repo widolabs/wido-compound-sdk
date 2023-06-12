@@ -24,14 +24,20 @@ export class Equalizer extends LoanProviderBase {
   }
 
   private async buildContract(): Promise<Contract> {
-    const poolAddress = await this.widoContract.callStatic.equalizerProvider();
+    const widoContract = new Contract(
+      this.widoContractAddress, [
+        "function loanProvider() returns(address)"
+      ],
+      this.rpcProvider
+    );
+    const poolAddress = await widoContract.callStatic.loanProvider();
     return new Contract(
       poolAddress,
       [
         "function flashFee(address,uint256) returns(uint256)",
         "function maxFlashLoan(address) returns(uint256)"
       ],
-      this.widoContract.provider
+      this.rpcProvider
     );
   }
 }

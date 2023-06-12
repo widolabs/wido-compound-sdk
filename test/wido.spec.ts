@@ -4,6 +4,9 @@ import { Deployments, WidoCompoundSdk } from '../src';
 import { approveERC20, approveWeth, getCometContract, getERC20, getWallet, getWeth, USDC, WBTC, WETH } from './helpers';
 import { BigNumber } from 'ethers';
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
+import { useLocalApi } from 'wido';
+
+useLocalApi();
 
 describe("CollateralSwap SDK", () => {
 

@@ -1,4 +1,5 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber } from 'ethers';
+import { Provider } from '@ethersproject/providers';
 
 /**
  * The order here is important, needs to be the same the enum in WidoCollateralSwap contract
@@ -10,19 +11,22 @@ export enum LoanProvider {
 }
 
 export abstract class LoanProviderBase {
-  protected readonly widoContract: Contract;
+  protected readonly widoContractAddress: string;
   protected readonly asset: string;
   protected readonly amount: BigNumber;
+  protected readonly rpcProvider: Provider;
   private computedFee: BigNumber | null;
 
   constructor(
-    widoContract: Contract,
+    widoContractAddress: string,
     asset: string,
-    amount: BigNumber
+    amount: BigNumber,
+    rpcProvider: Provider,
   ) {
-    this.widoContract = widoContract;
+    this.widoContractAddress = widoContractAddress;
     this.asset = asset;
     this.amount = amount;
+    this.rpcProvider = rpcProvider;
     this.computedFee = null;
   }
 

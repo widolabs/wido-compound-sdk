@@ -1,5 +1,6 @@
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
 import { Deployment, UserAsset, UserAssets } from '../types';
+import { LoanProvider } from '../providers/loanProvider';
 
 const MAINNET_ID = 1;
 const GOERLI_ID = 5;
@@ -20,9 +21,15 @@ const keyToId = {
   fuji: FUJI_ID,
 }
 
-export const widoCollateralSwapAddress: Record<number, string> = {
-  [MAINNET_ID]: "0x5E5713a0d915701F464DEbb66015adD62B2e6AE9",
-  [POLYGON_ID]: "0x62964Fe228cCFeDa3c86Fa41414d6f89eC411Fac",
+export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, string>> = {
+  [MAINNET_ID]: {
+    [LoanProvider.Equalizer]: "",
+    [LoanProvider.Aave]: "",
+  },
+  [POLYGON_ID]: {
+    [LoanProvider.Equalizer]: "0x5D2aa1cF0E760911D41DaA5e916B40ffd6146cF5",
+    [LoanProvider.Aave]: "0xfC16794C42229839C4e2460D803501517D777133",
+  }
 }
 
 /**

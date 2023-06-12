@@ -1,20 +1,32 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber } from 'ethers';
+import { Provider } from '@ethersproject/providers';
 import { Equalizer } from './equalizer';
 import { Aave } from './aave';
-import { LoanProviderBase } from './loanProvider';
+import { LoanProvider, LoanProviderBase } from './loanProvider';
+import { widoCollateralSwapAddress } from '../utils';
 
 export class LoanProviders {
   private readonly providers: LoanProviderBase[];
 
   constructor(
-    widoContract: Contract,
+    chainId: number,
     asset: string,
-    amount: BigNumber
+    amount: BigNumber,
+    rpcProvider: Provider
   ) {
-    this.providers = [
-      new Equalizer(widoContract, asset, amount),
-      new Aave(widoContract, asset, amount),
-    ]
+    this.providers = [];
+
+    if (widoCollateralSwapAddress[chainId][LoanProvider.Equalizer]) {
+      this.providers.push(
+        new Equalizer(widoCollateralSwapAddress[chainId][LoanProvider.Equalizer], asset, amount, rpcProvider)
+      );
+    }
+
+    if (widoCollateralSwapAddress[chainId][LoanProvider.Aave]) {
+      this.providers.push(
+        new Aave(widoCollateralSwapAddress[chainId][LoanProvider.Aave], asset, amount, rpcProvider)
+      );
+    }
   }
 
   /**

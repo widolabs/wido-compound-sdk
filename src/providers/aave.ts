@@ -36,7 +36,13 @@ export class Aave extends LoanProviderBase {
   }
 
   private async buildContract(): Promise<Contract> {
-    const poolAddress = await this.widoContract.callStatic.POOL();
+    const widoContract = new Contract(
+      this.widoContractAddress, [
+        "function POOL() returns(address)"
+      ],
+      this.rpcProvider
+    );
+    const poolAddress = await widoContract.callStatic.POOL();
     return new Contract(
       poolAddress,
       [
@@ -44,7 +50,7 @@ export class Aave extends LoanProviderBase {
         "function getReservesList() external view returns (address[])",
         "function getConfiguration(address asset) external view returns (uint256)"
       ],
-      this.widoContract.provider
+      this.rpcProvider
     );
   }
 
