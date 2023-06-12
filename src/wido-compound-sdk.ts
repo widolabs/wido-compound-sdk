@@ -229,7 +229,7 @@ export class WidoCompoundSdk {
       cometAddress
     );
 
-    return (await tx.wait()).transactionHash;
+    return tx.hash;
   }
 
   /**
