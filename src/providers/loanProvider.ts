@@ -1,13 +1,9 @@
 import { BigNumber } from 'ethers';
 import { Provider } from '@ethersproject/providers';
 
-/**
- * The order here is important, needs to be the same the enum in WidoCollateralSwap contract
- * <link>
- */
 export enum LoanProvider {
-  Equalizer = 0,
-  Aave = 1,
+  Equalizer = 1,
+  Aave = 2,
 }
 
 export abstract class LoanProviderBase {
