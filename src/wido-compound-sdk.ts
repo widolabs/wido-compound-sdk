@@ -210,7 +210,7 @@ export class WidoCompoundSdk {
       fees: {
         providerFee: providerFee,
         widoFee: widoFee,
-        totalUsd: totalFeeUsd.toString()
+        totalUsd: totalFeeUsd
       }
     }
   }
@@ -547,11 +547,20 @@ export class WidoCompoundSdk {
     return splitSignature(sig);
   }
 
+  /**
+   * Fetch prices of both assets and converts the fees into a single USD amount
+   * @param fromAsset
+   * @param widoFee
+   * @param toAsset
+   * @param providerFee
+   * @param chainId
+   * @private
+   */
   private async getUsdFees(
     fromAsset: Asset,
-    widoFee: string,
+    widoFee: number,
     toAsset: Asset,
-    providerFee: string,
+    providerFee: number,
     chainId: number
   ) {
     const prices = await this.priceFetcher.fetch([
@@ -560,7 +569,7 @@ export class WidoCompoundSdk {
     ], chainId)
     const fromAssetPrice = fromAsset.address.toLowerCase() in prices ? prices[fromAsset.address.toLowerCase()].usd : 0;
     const toAssetPrice = toAsset.address.toLowerCase() in prices ? prices[toAsset.address.toLowerCase()].usd : 0;
-    return (Number(widoFee) * fromAssetPrice) + (Number(providerFee) * toAssetPrice);
+    return (widoFee * fromAssetPrice) + (providerFee * toAssetPrice);
   }
 
   /**

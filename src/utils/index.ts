@@ -84,14 +84,14 @@ export function pickAsset(collaterals: UserAssets, asset: string): UserAsset {
 /**
  * Formats an `amount` of `decimals` precision into a string for the UI
  */
-export function formatNumber(amount: BigNumber, decimals: number, precision = 8): string {
+export function formatNumber(amount: BigNumber, decimals: number, precision = 8): number {
   const { integer, decimal } = getAmountParts(amount, decimals);
   const _decimal = BigNumber.from(decimal);
   if (_decimal.eq(BigNumber.from(0))) {
-    return integer;
+    return Number(integer);
   }
   // compose visible number
-  return integer + "." + decimal.substring(0, precision)
+  return Number(integer + "." + decimal.substring(0, precision))
 }
 
 /**

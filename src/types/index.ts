@@ -29,9 +29,9 @@ export interface CollateralSwapRoute {
 }
 
 export interface Fees {
-  providerFee: string
-  widoFee: string
-  totalUsd: string
+  providerFee: number
+  widoFee: number
+  totalUsd: number
 }
 
 export interface Position {
