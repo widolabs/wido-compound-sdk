@@ -1,9 +1,6 @@
-import { ethers, Contract, BigNumber, Signer, Signature, TypedDataDomain } from 'ethers';
+import { BigNumber, Contract, ethers, Signature, Signer, TypedDataDomain } from 'ethers';
 import type { TypedDataSigner } from "@ethersproject/abstract-signer";
-import {
-  AllowSignatureMessage,
-  AssetInfo,
-} from '@compound-finance/compound-js/dist/nodejs/types';
+import { AllowSignatureMessage, AssetInfo, } from '@compound-finance/compound-js/dist/nodejs/types';
 import Compound from '@compound-finance/compound-js';
 import { providers } from '@0xsequence/multicall';
 import { splitSignature } from 'ethers/lib/utils';
@@ -17,7 +14,7 @@ import {
   pickAsset,
   widoCollateralSwapAddress
 } from './utils';
-import { quote, getWidoSpender } from 'wido';
+import { getWidoSpender, quote } from 'wido';
 import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
@@ -189,7 +186,8 @@ export class WidoCompoundSdk {
       : "0";
 
     // compute fees
-    const widoFee = formatNumber(amount.mul(30).div(10000), fromAsset.decimals);
+    const WIDO_FEE_BPS = 30
+    const widoFee = formatNumber(amount.mul(WIDO_FEE_BPS).div(10000), fromAsset.decimals);
     const providerFee = formatNumber(await provider.computeFee(), toAsset.decimals);
     const totalFeeUsd = await this.getUsdFees(
       fromAsset, widoFee,
@@ -554,16 +552,13 @@ export class WidoCompoundSdk {
     providerFee: string,
     chainId: number
   ) {
-    const prices = this.priceFetcher.fetch([
+    const prices = await this.priceFetcher.fetch([
       fromAsset.address,
       toAsset.address
     ], chainId)
-
-    console.log(widoFee)
-    console.log(providerFee)
-    console.log(prices);
-
-    return 0;
+    const fromAssetPrice = fromAsset.address.toLowerCase() in prices ? prices[fromAsset.address.toLowerCase()].usd : 0;
+    const toAssetPrice = toAsset.address.toLowerCase() in prices ? prices[toAsset.address.toLowerCase()].usd : 0;
+    return (Number(widoFee) * fromAssetPrice) + (Number(providerFee) * toAssetPrice);
   }
 
   /**

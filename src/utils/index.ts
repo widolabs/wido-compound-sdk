@@ -84,7 +84,7 @@ export function pickAsset(collaterals: UserAssets, asset: string): UserAsset {
 /**
  * Formats an `amount` of `decimals` precision into a string for the UI
  */
-export function formatNumber(amount: BigNumber, decimals: number, precision = 4): string {
+export function formatNumber(amount: BigNumber, decimals: number, precision = 8): string {
   const { integer, decimal } = getAmountParts(amount, decimals);
   const _decimal = BigNumber.from(decimal);
   if (_decimal.eq(BigNumber.from(0))) {
