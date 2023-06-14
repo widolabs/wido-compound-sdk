@@ -9,20 +9,30 @@ import { providers } from '@0xsequence/multicall';
 import { splitSignature } from 'ethers/lib/utils';
 import { Comet_ABI } from './types/comet';
 import { IWidoCollateralSwap_ABI } from './types/widoCollateralSwap';
-import { getChainId, getCometAddress, getDeploymentDetails, pickAsset, widoCollateralSwapAddress } from './utils';
+import {
+  formatNumber,
+  getChainId,
+  getCometAddress,
+  getDeploymentDetails,
+  pickAsset,
+  widoCollateralSwapAddress
+} from './utils';
 import { quote, getWidoSpender } from 'wido';
-import { Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
+import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
+import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
 
 export class WidoCompoundSdk {
   private readonly comet: string;
   private readonly signer: Signer & TypedDataSigner;
+  private readonly priceFetcher: CoingeckoTokensPriceFetcher;
 
   constructor(signer: Signer & TypedDataSigner, comet: string) {
     WidoCompoundSdk.validateComet(comet);
     this.signer = signer;
     this.comet = comet;
+    this.priceFetcher = new CoingeckoTokensPriceFetcher();
   }
 
   /**
@@ -178,6 +188,15 @@ export class WidoCompoundSdk {
       ? quoteResponse.minToTokenAmount
       : "0";
 
+    // compute fees
+    const widoFee = formatNumber(amount.mul(30).div(10000), fromAsset.decimals);
+    const providerFee = formatNumber(await provider.computeFee(), toAsset.decimals);
+    const totalFeeUsd = await this.getUsdFees(
+      fromAsset, widoFee,
+      toAsset, providerFee,
+      chainId
+    );
+
     // construct & return quote
     return {
       isSupported: supported,
@@ -190,6 +209,9 @@ export class WidoCompoundSdk {
       toCollateral: toAsset.address,
       toCollateralAmount: toAmount,
       toCollateralMinAmount: minToAmount,
+      providerFee: providerFee,
+      widoFee: widoFee,
+      totalFeeUsd: totalFeeUsd.toString()
     }
   }
 
@@ -523,6 +545,25 @@ export class WidoCompoundSdk {
     const sig = await this.signer._signTypedData(domain, types, message);
 
     return splitSignature(sig);
+  }
+
+  private async getUsdFees(
+    fromAsset: Asset,
+    widoFee: string,
+    toAsset: Asset,
+    providerFee: string,
+    chainId: number
+  ) {
+    const prices = this.priceFetcher.fetch([
+      fromAsset.address,
+      toAsset.address
+    ], chainId)
+
+    console.log(widoFee)
+    console.log(providerFee)
+    console.log(prices);
+
+    return 0;
   }
 
   /**
