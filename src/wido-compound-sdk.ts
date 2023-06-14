@@ -186,8 +186,8 @@ export class WidoCompoundSdk {
       : "0";
 
     // compute fees
-    const WIDO_FEE_BPS = 30
-    const widoFee = formatNumber(amount.mul(WIDO_FEE_BPS).div(10000), fromAsset.decimals);
+    const wido_fee_bps = quoteResponse.feeBps ?? 0;
+    const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
     const providerFee = formatNumber(await provider.computeFee(), toAsset.decimals);
     const totalFeeUsd = await this.getUsdFees(
       fromAsset, widoFee,

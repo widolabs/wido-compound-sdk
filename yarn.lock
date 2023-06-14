@@ -2688,10 +2688,10 @@ which@^2.0.1:
   dependencies:
     isexe "^2.0.0"
 
-wido@^0.2.8:
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/wido/-/wido-0.2.8.tgz#294fb4cf489b2b6d76ce9822f7366873a2eee146"
-  integrity sha512-jPjVdVXfGTXeR+DM7ZHF8UONeaScpQQZh+drhRSZQZEKO6rl3jZnJAZUGNQn/49mJ9JmU8gLFPSePyDssz64UQ==
+wido@0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/wido/-/wido-0.3.1.tgz#781818bbbeeeab98418976c8e7e630a97410749d"
+  integrity sha512-rBS+BtJtwSEQszzXUCz2cFOfg6/8xtlbdFDZS+MOiLWzmstQK6x5WCOzTp/Qvholub+aRqhbmHQwneGYN627Ww==
 
 word-wrap@^1.2.3:
   version "1.2.3"
