@@ -1,8 +1,7 @@
 import { CoingeckoApiBaseClient } from './coingecko-api-base-client';
 
 export class CoingeckoTokensPriceFetcher
-  extends CoingeckoApiBaseClient
-{
+  extends CoingeckoApiBaseClient {
   async fetch(addresses: string[], chainId: number): Promise<{ address: string; price: number }[]> {
     const results = [];
     do {
@@ -15,15 +14,15 @@ export class CoingeckoTokensPriceFetcher
 
   private async batch(chainId: number, addresses: string[]) {
     await this.sleep();
-    const prices = await this.client.simple.fetchTokenPrice(
+    const prices = await this.simpleTokenPrice(
       {
-        contract_addresses: addresses,
+        id: this.getPlatform(chainId),
+        contract_addresses: addresses.join(","),
         vs_currencies: 'usd',
-      },
-      this.getPlatform(chainId),
+      }
     );
     const results = [];
-    for (const [address, price] of Object.entries(prices.data)) {
+    for (const [address, price] of Object.entries(prices)) {
       results.push({
         address: address,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
