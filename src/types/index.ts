@@ -25,9 +25,13 @@ export interface CollateralSwapRoute {
   tokenManager: string
   to?: string
   data?: string
+  fees: Fees
+}
+
+export interface Fees {
   providerFee: string
   widoFee: string
-  totalFeeUsd: string
+  totalUsd: string
 }
 
 export interface Position {

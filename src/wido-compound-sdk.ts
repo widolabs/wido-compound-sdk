@@ -207,9 +207,11 @@ export class WidoCompoundSdk {
       toCollateral: toAsset.address,
       toCollateralAmount: toAmount,
       toCollateralMinAmount: minToAmount,
-      providerFee: providerFee,
-      widoFee: widoFee,
-      totalFeeUsd: totalFeeUsd.toString()
+      fees: {
+        providerFee: providerFee,
+        widoFee: widoFee,
+        totalUsd: totalFeeUsd.toString()
+      }
     }
   }
 
