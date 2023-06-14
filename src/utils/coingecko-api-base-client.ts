@@ -1,9 +1,7 @@
-import https from "https";
-import { RequestOptions } from 'https';
-
 /**
  * Implementation has been copied from
  * https://github.com/samuraitruong/coingecko-api-v3/blob/main/src/CoinGeckoClient.ts
+ * and hugely simplified,
  *
  * because the current released version is hardcoded to only support "ethereum" chain,
  * and that project takes forever to accept PRs.
@@ -11,18 +9,6 @@ import { RequestOptions } from 'https';
  * If eventually support for all chains is added, we can simply remove all the private function
  * in this class and use `coingecko-api-v3`
  */
-
-interface HttpResponse<T> {
-  data: T,
-  statusCode: number,
-  headers: { [x: string]: string | string[] }
-}
-
-interface Options {
-  timeout?: number,
-  autoRetry?: boolean,
-  extraHTTPSOptions?: RequestOptions
-}
 
 export interface TokenPriceResponse {
   /**
@@ -38,10 +24,6 @@ export interface TokenPriceResponse {
 
 export abstract class CoingeckoApiBaseClient {
   private static readonly API_V3_URL = "https://api.coingecko.com/api/v3";
-  private options: Options = {
-    timeout: 30000,
-    autoRetry: true,
-  };
 
   protected getPlatform(chainId: number): string {
     switch (chainId) {
@@ -72,70 +54,6 @@ export abstract class CoingeckoApiBaseClient {
   }
 
   /**
-   * Make HTTP request to the given endpoint
-   * @param url the full https URL
-   * @returns json content
-   */
-  private async httpGet<T>(url: string) {
-    const { host, pathname, search } = new URL(url);
-    const options: https.RequestOptions = {
-      host,
-      path: pathname + search,
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "User-Agent": "coingeckoclient/0.0.1",
-      },
-      timeout: this.options.timeout, // in ms
-      ...this.options.extraHTTPSOptions,
-    };
-    const parseJson = (input: string) => {
-      try {
-        return JSON.parse(input);
-      } catch (err) {
-        return input;
-      }
-    };
-
-    return new Promise<HttpResponse<T | any>>((resolve, reject) => {
-      const req = https.request(options, (res) => {
-        if (res.statusCode && res.statusCode === 429) {
-          resolve({
-            statusCode: res.statusCode,
-            data: {
-              error: "HTTP 429 - Too many request",
-            },
-            headers: res.headers as any,
-          });
-          // reject(new Error(`HTTP status code ${res.statusCode}`));
-        }
-        const body: Array<Uint8Array> = [];
-        res.on("data", (chunk) => body.push(chunk));
-        res.on("end", () => {
-          const resString = Buffer.concat(body).toString();
-          resolve({
-            statusCode: res.statusCode as number,
-            data: parseJson(resString) as T,
-            headers: res.headers as any,
-          });
-        });
-      });
-
-      req.on("error", (err) => {
-        reject(err);
-      });
-
-      req.on("timeout", () => {
-        req.destroy();
-        reject(new Error(`HTTP Request timeout after ${this.options.timeout}`));
-      });
-
-      req.end();
-    });
-  }
-
-  /**
    * Generic function to make request use in internal function
    * @param action
    * @param params
@@ -151,22 +69,22 @@ export abstract class CoingeckoApiBaseClient {
     const requestUrl = `${
       CoingeckoApiBaseClient.API_V3_URL + this.withPathParams(action, params)
     }?${qs}`;
-    const res = await this.httpGet<T>(requestUrl); // await this.http.get<T>(requestUrl);
-    if (res.statusCode === 429 && this.options.autoRetry) {
-      // console.warn("retrying........", requestUrl, res.headers);
-      const retryAfter = +res.headers["retry-after"] * 1000;
-      // console.log("retrying after ", retryAfter);
-      await new Promise((r) => setTimeout(r, retryAfter));
-      return (await this.makeRequest<T>(action, params)) as T;
-    }
+    return await fetch(requestUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        if (response.status.toString().slice(0, 1) !== "2") {
+          throw new Error(
+            `got error from coin gecko. status code: ${response.status}`
+          );
+        }
 
-    if (res.statusCode.toString().slice(0, 1) !== "2") {
-      throw new Error(
-        `got error from coin gecko. status code: ${res.statusCode}`
-      );
-    }
-
-    return res.data as T;
+        return response.text();
+      })
+      .then(text => {
+        return JSON.parse(text)
+      })
   }
 
   private withPathParams(
