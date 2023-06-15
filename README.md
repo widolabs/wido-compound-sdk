@@ -29,3 +29,6 @@ npm install --save @widolabs/collateral-swap-sdk
 ## Contributing
 
 Contributing docs are located in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Do you have any questions?
+Please reach out https://docs.joinwido.com/company/contact-us
