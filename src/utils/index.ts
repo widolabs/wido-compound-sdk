@@ -24,12 +24,12 @@ const keyToId = {
 
 export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, string>> = {
   [MAINNET_ID]: {
-    [LoanProvider.Equalizer]: "0x30426d33a78afdb8788597d5bfabdadc3be95698",
-    [LoanProvider.Aave]: "0xae2563b4315469bf6bdd41a6ea26157de57ed94e",
+    [LoanProvider.Equalizer]: "0x2F43AFe8E9a5Ddd90D7B16e1798879CD35D46A2F",
+    [LoanProvider.Aave]: "0xaAA9f2FeE419977804eBD06F6E121f76FbcE8498",
   },
   [POLYGON_ID]: {
-    [LoanProvider.Equalizer]: "0x5D2aa1cF0E760911D41DaA5e916B40ffd6146cF5",
-    [LoanProvider.Aave]: "0xfC16794C42229839C4e2460D803501517D777133",
+    [LoanProvider.Equalizer]: "0xA2e08590f6f0ed44a65361deFcE090C00e8e6e10",
+    [LoanProvider.Aave]: "0x17000CdCCCFf2D0B2d8958BA40c751Fa9b4BE089",
   }
 }
 
