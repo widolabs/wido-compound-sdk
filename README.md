@@ -16,9 +16,9 @@ or
 npm install --save @widolabs/collateral-swap-sdk
 ```
 
-## Getting started
+## Docs
 
-<https://docs.joinwido.com/use-cases/compound-sdk>
+<https://docs.joinwido.com/integrate-wido/compound-sdk>
 
 ## Features
 
