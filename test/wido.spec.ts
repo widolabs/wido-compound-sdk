@@ -21,7 +21,6 @@ describe("CollateralSwap SDK", () => {
   it("should return already known deployments", async () => {
     const deployments = WidoCompoundSdk.getDeployments()
 
-    console.log(deployments)
     expect(deployments.length).toBeGreaterThanOrEqual(8);
 
     const existingDeployments: Deployments = [
