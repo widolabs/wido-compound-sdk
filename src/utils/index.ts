@@ -63,7 +63,8 @@ export function getDeploymentDetails(comet: string): Deployment | undefined {
   return {
     chainId: chainId,
     asset: asset,
-    cometKey: comet
+    cometKey: comet,
+    address: getCometAddress(comet)
   }
 }
 

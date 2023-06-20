@@ -21,49 +21,34 @@ describe("CollateralSwap SDK", () => {
   it("should return already known deployments", async () => {
     const deployments = WidoCompoundSdk.getDeployments()
 
+    console.log(deployments)
     expect(deployments.length).toBeGreaterThanOrEqual(8);
 
     const existingDeployments: Deployments = [
       {
         chainId: 1,
         asset: "usdc",
-        cometKey: "mainnet_usdc"
+        cometKey: "mainnet_usdc",
+        address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
       },
       {
         chainId: 1,
         asset: "weth",
-        cometKey: "mainnet_weth"
+        cometKey: "mainnet_weth",
+        address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
       },
       {
         chainId: 137,
         asset: "usdc",
-        cometKey: "polygon_usdc"
+        cometKey: "polygon_usdc",
+        address: '0xF25212E676D1F7F89Cd72fFEe66158f541246445',
       },
       {
-        chainId: 5,
-        asset: "usdc",
-        cometKey: "goerli_usdc"
-      },
-      {
-        chainId: 5,
-        asset: "weth",
-        cometKey: "goerli_weth"
-      },
-      {
-        chainId: 80001,
-        asset: "usdc",
-        cometKey: "mumbai_usdc"
-      },
-      {
-        chainId: 420,
-        asset: "usdc",
-        cometKey: "goerli_optimism_usdc"
-      },
-      {
-        chainId: 43113,
-        asset: "usdc",
-        cometKey: "fuji_usdc"
-      },
+        chainId: 42161,
+        asset: 'usdc',
+        cometKey: 'arbitrum_usdc',
+        address: '0xA5EDBDD9646f8dFF606d7448e414884C7d905dCA'
+      }
     ]
 
     for (const deployment of deployments) {

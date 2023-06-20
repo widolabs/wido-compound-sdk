@@ -45,6 +45,7 @@ export interface Deployment {
   chainId: number
   asset: string
   cometKey: string
+  address: string
 }
 
 export type Deployments = Deployment[]
