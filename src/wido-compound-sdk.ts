@@ -205,7 +205,7 @@ export class WidoCompoundSdk {
     const wido_fee_bps = quoteResponse.feeBps ?? 0;
     const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
     const providerFee = formatNumber(await provider.computeFee(), toAsset.decimals);
-    const totalFeeUsd = await this.getUsdFees(
+    const usdFees = await this.getUsdFees(
       fromAsset, widoFee,
       toAsset, providerFee,
       chainId
@@ -226,7 +226,9 @@ export class WidoCompoundSdk {
       fees: {
         providerFee: providerFee,
         widoFee: widoFee,
-        totalUsd: totalFeeUsd
+        widoFeeUsd: usdFees.widoFee,
+        providerFeeUsd: usdFees.providerFee,
+        totalUsd: usdFees.widoFee + usdFees.providerFee
       }
     }
   }
@@ -578,14 +580,20 @@ export class WidoCompoundSdk {
     toAsset: Asset,
     providerFee: number,
     chainId: number
-  ) {
+  ): Promise<{
+    widoFee: number,
+    providerFee: number
+  }> {
     const prices = await this.priceFetcher.fetch([
       fromAsset.address,
       toAsset.address
     ], chainId)
     const fromAssetPrice = fromAsset.address.toLowerCase() in prices ? prices[fromAsset.address.toLowerCase()].usd : 0;
     const toAssetPrice = toAsset.address.toLowerCase() in prices ? prices[toAsset.address.toLowerCase()].usd : 0;
-    return (widoFee * fromAssetPrice) + (providerFee * toAssetPrice);
+    return {
+      widoFee: widoFee * fromAssetPrice,
+      providerFee: providerFee * toAssetPrice
+    }
   }
 
   /**

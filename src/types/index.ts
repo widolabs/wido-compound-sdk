@@ -31,6 +31,8 @@ export interface CollateralSwapRoute {
 export interface Fees {
   providerFee: number
   widoFee: number
+  widoFeeUsd: number
+  providerFeeUsd: number
   totalUsd: number
 }
 
