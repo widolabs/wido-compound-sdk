@@ -1,7 +1,7 @@
 {
   "name": "@widolabs/collateral-swap-sdk",
   "license": "UNLICENSED",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@0xsequence/multicall": "^0.43.27",
-    "@compound-finance/compound-js": "^0.6.0",
+    "@compound-finance/compound-js": "^0.6.1",
     "@typescript-eslint/eslint-plugin": "^5.30.0",
     "@typescript-eslint/parser": "^5.30.0",
     "@vitest/coverage-c8": "^0.24.3",

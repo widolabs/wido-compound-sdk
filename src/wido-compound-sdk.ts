@@ -39,7 +39,10 @@ export class WidoCompoundSdk {
     const deployments = Compound.comet.getSupportedDeployments();
     const result = [];
     for (const deployment of deployments) {
-      result.push(getDeploymentDetails(deployment));
+      const details = getDeploymentDetails(deployment);
+      if(details) {
+        result.push(details);
+      }
     }
     return result;
   }

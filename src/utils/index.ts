@@ -4,22 +4,13 @@ import { LoanProvider } from '../providers/loanProvider';
 import { BigNumber } from 'ethers';
 
 const MAINNET_ID = 1;
-const GOERLI_ID = 5;
-
 const POLYGON_ID = 137;
-const MUMBAI_ID = 80001;
-
-const FUJI_ID = 43113;
-
-const GOERLI_OPTIMISM_ID = 420;
+const ARBITRUM_ID = 42161;
 
 const keyToId = {
   mainnet: MAINNET_ID,
-  goerli: GOERLI_ID,
   polygon: POLYGON_ID,
-  mumbai: MUMBAI_ID,
-  goerli_optimism: GOERLI_OPTIMISM_ID,
-  fuji: FUJI_ID,
+  arbitrum: ARBITRUM_ID,
 }
 
 export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, string>> = {
@@ -30,6 +21,10 @@ export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, stri
   [POLYGON_ID]: {
     [LoanProvider.Equalizer]: "0xA2e08590f6f0ed44a65361deFcE090C00e8e6e10",
     [LoanProvider.Aave]: "0x17000CdCCCFf2D0B2d8958BA40c751Fa9b4BE089",
+  },
+  [ARBITRUM_ID]: {
+    [LoanProvider.Equalizer]: "",
+    [LoanProvider.Aave]: "0x74436167012475749168f33324e84990C8013647",
   }
 }
 
@@ -47,19 +42,24 @@ export function getCometAddress(cometKey: string): string {
  * @param comet
  */
 export function getChainId(comet: string): number {
-  return getDeploymentDetails(comet).chainId
+  const details = getDeploymentDetails(comet);
+  if (!details) {
+    throw new Error("Wrong comet key")
+  }
+  return details.chainId
 }
 
 /**
  * Returns the deployment details of a Comet
  * @param comet
  */
-export function getDeploymentDetails(comet: string): Deployment {
+export function getDeploymentDetails(comet: string): Deployment | undefined {
   const parts = comet.split("_");
   const asset = parts.pop() as string;
   const chainKey = parts.join("_");
   // @ts-ignore
   const chainId = keyToId[chainKey];
+  if (!chainId) return;
   return {
     chainId: chainId,
     asset: asset,
