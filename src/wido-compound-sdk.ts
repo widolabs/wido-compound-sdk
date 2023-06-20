@@ -155,14 +155,27 @@ export class WidoCompoundSdk {
       throw new Error("From amount bigger than balance");
     }
 
+    // initial quote to get final amount
+    let quoteResponse = await quote({
+      fromChainId: chainId,
+      fromToken: fromAsset.address,
+      toChainId: chainId,
+      toToken: toAsset.address,
+      amount: amount.toString(),
+    });
+
     // select best provider for this swap
-    const provider = await this.getBestProvider(chainId, fromAsset.address, amount);
+    const provider = await this.getBestProvider(
+      chainId,
+      fromAsset.address,
+      BigNumber.from(quoteResponse.toTokenAmount)
+    );
     if (!provider) {
       throw new Error("There is no loan provider to enable this swap");
     }
 
-    // quote Wido API for route
-    const quoteResponse = await quote({
+    // quote Wido API for complete route
+    quoteResponse = await quote({
       fromChainId: chainId,
       fromToken: fromAsset.address,
       toChainId: chainId,
