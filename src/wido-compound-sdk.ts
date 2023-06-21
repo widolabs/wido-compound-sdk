@@ -167,7 +167,7 @@ export class WidoCompoundSdk {
     // select best provider for this swap
     const provider = await this.getBestProvider(
       chainId,
-      fromAsset.address,
+      toAsset.address,
       BigNumber.from(quoteResponse.toTokenAmount)
     );
     if (!provider) {
