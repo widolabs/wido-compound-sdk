@@ -223,6 +223,7 @@ export class WidoCompoundSdk {
       toCollateral: toAsset.address,
       toCollateralAmount: toAmount,
       toCollateralMinAmount: minToAmount,
+      price: quoteResponse.price,
       fees: {
         providerFee: providerFee,
         widoFee: widoFee,

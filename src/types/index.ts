@@ -22,6 +22,7 @@ export interface CollateralSwapRoute {
   toCollateral: string
   toCollateralAmount: string
   toCollateralMinAmount: string
+  price?: string
   tokenManager: string
   to?: string
   data?: string
