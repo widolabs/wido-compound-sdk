@@ -40,7 +40,7 @@ export class WidoCompoundSdk {
     const result = [];
     for (const deployment of deployments) {
       const details = getDeploymentDetails(deployment);
-      if(details) {
+      if (details) {
         result.push(details);
       }
     }
@@ -87,6 +87,9 @@ export class WidoCompoundSdk {
             balance: result[0]
           }
         })
+      })
+      .catch(() => {
+        throw new Error("Failed to fetch collaterals")
       })
   }
 
@@ -307,11 +310,16 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getAssetsInfo(cometContract: Contract): Promise<AssetInfo[]> {
-    const numAssets = await cometContract.callStatic.numAssets();
+    const numAssets = await cometContract.callStatic.numAssets().catch(() => {
+      throw new Error("Failed to fetch numAssets")
+    });
     return await Promise.all(
       [...Array(numAssets).keys()]
         .map(i => cometContract.callStatic.getAssetInfo(i))
-    );
+    )
+      .catch(() => {
+        throw new Error("Failed to fetch assets info")
+      });
   }
 
   /**
@@ -327,13 +335,15 @@ export class WidoCompoundSdk {
       const contract = new Contract(
         infos[i].asset,
         [
-          "function decimals() external returns(uint256)"
+          "function decimals() external returns(uint8)"
         ],
         new providers.MulticallProvider(this.signer.provider)
       );
       calls.push(contract.callStatic.decimals());
     }
-    return await Promise.all(calls);
+    return await Promise.all(calls).catch(() => {
+      throw new Error("Failed to fetch decimals")
+    })
   }
 
   /**
@@ -376,8 +386,12 @@ export class WidoCompoundSdk {
       promisesCollaterals.push(cometContract.callStatic.collateralBalanceOf(userAddress, asset));
       promisesPrices.push(cometContract.callStatic.getPrice(priceFeed));
     }
-    const collateralBalances = await Promise.all(promisesCollaterals);
-    const collateralPrices = await Promise.all(promisesPrices);
+    const collateralBalances = await Promise.all(promisesCollaterals).catch(() => {
+      throw new Error("Failed to fetch collateral balances")
+    });
+    const collateralPrices = await Promise.all(promisesPrices).catch(() => {
+      throw new Error("Failed to fetch collateral prices")
+    });
     return {
       balances: collateralBalances,
       prices: collateralPrices
@@ -470,7 +484,10 @@ export class WidoCompoundSdk {
       contract.callStatic.userNonce(userAddress),
       contract.callStatic.name(),
       contract.callStatic.version(),
-    ]);
+    ])
+      .catch(() => {
+        throw new Error("Failed to fetch signature details")
+      });
 
     let nonce = +results[0];
     const name = results[1];
