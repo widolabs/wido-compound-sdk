@@ -46,7 +46,7 @@
     "vite": "^2.9.15",
     "vite-plugin-dts": "^2.3.0",
     "vitest": "^0.24.3",
-    "wido": "0.3.1"
+    "wido": "^0.3.5"
   },
   "keywords": [
     "wido",
