@@ -333,13 +333,14 @@ export class WidoCompoundSdk {
       throw new Error("Signer without provider");
     }
     const calls = [];
+    const provider = new providers.MulticallProvider(this.signer.provider);
     for (let i = 0; i < infos.length; i++) {
       const contract = new Contract(
         infos[i].asset,
         [
           "function decimals() external returns(uint8)"
         ],
-        new providers.MulticallProvider(this.signer.provider)
+        provider
       );
       calls.push(contract.callStatic.decimals());
     }
