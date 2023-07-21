@@ -14,7 +14,7 @@ import {
   pickAsset,
   widoCollateralSwapAddress
 } from './utils';
-import { getWidoSpender, quote } from 'wido';
+import { getWidoSpender, quote, Providers } from 'wido';
 import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
@@ -165,6 +165,7 @@ export class WidoCompoundSdk {
       toChainId: chainId,
       toToken: toAsset.address,
       amount: amount.toString(),
+      providers: [Providers.ZeroEx],
     });
 
     // select best provider for this swap
@@ -185,6 +186,7 @@ export class WidoCompoundSdk {
       toToken: toAsset.address,
       amount: amount.toString(),
       user: widoCollateralSwapAddress[chainId][provider.id()],
+      providers: [Providers.ZeroEx],
     });
 
     // fetch Wido Token Manager address
