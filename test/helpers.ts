@@ -1,19 +1,31 @@
 import { BigNumber, Contract, ethers, Wallet } from 'ethers';
 import { getWidoSpender, quote } from 'wido';
+import { getDeploymentDetails } from '../src/utils';
 
 export const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 export const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
 export const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-export function getWallet(): Wallet {
-  let url = "http://localhost:8545"
-  let network = "mainnet";
-  const provider = new ethers.providers.JsonRpcProvider(url, network);
+export function getWallet(comet: string = "mainnet_usdc"): Wallet {
+  const details = getDeploymentDetails(comet)
+  const chainId = details?.chainId
+  const rpc = getRPC(chainId)
+  const provider = new ethers.providers.JsonRpcProvider(rpc, chainId);
   const p_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" // from Anvil fork
   const wallet = new Wallet(p_key);
   return wallet.connect(provider);
 }
 
+function getRPC(chainId: number | undefined): string {
+  switch (chainId) {
+    case 1:
+      return "https://eth.llamarpc.com"
+    case 137:
+      return "https://polygon.llamarpc.com"
+    default:
+      return "http://localhost:8545"
+  }
+}
 
 export function getWethContract(signer: Wallet): Contract {
   return new ethers.Contract(
