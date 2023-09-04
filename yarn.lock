@@ -168,10 +168,10 @@
   resolved "https://registry.yarnpkg.com/@biconomy/paymaster/-/paymaster-3.0.0-alpha.0.tgz#4bf33e8c42bf44ab6715e7d79df3a7d300d45b32"
   integrity sha512-spdx9cs0CF34YpcFpMBNl6ks14+7Dy2wiqGN5qBvrCepZyuyfsd6RD1DqC4Lwr7E8OsxpljPkTv0kNzfPF4NXg==
 
-"@compound-finance/compound-js@^0.6.1":
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/@compound-finance/compound-js/-/compound-js-0.6.1.tgz#393930a301484a2032a6417d696818fe8a420ae0"
-  integrity sha512-b5/FkiQBFB3Hv0inE4P47hZGX4EjEefkKD0JYLuiDdWbF0W9W54/52/Ke8c3oZdBsqUwEYih+0Jrh9oeKzpe9g==
+"@compound-finance/compound-js@0.6.2":
+  version "0.6.2"
+  resolved "https://registry.yarnpkg.com/@compound-finance/compound-js/-/compound-js-0.6.2.tgz#8f9b5ce45475cc1e45407a7ce27bc0fd3f242f8c"
+  integrity sha512-3BbEB2C2Uo9/W8L1YtVX54aG2W4wClEH27FfeO4a4yyPeHxHe7jJhXhZB5i1fQ2iZKs/a1C7WReWGsVlY8j5LQ==
 
 "@esbuild/android-arm@0.15.18":
   version "0.15.18"
