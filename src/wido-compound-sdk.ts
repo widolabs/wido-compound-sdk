@@ -19,6 +19,7 @@ import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets }
 import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
 import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
+import { Aave } from './providers/aave';
 
 export class WidoCompoundSdk {
   private readonly comet: string;
@@ -158,6 +159,8 @@ export class WidoCompoundSdk {
       throw new Error("From amount bigger than balance");
     }
 
+    const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave];
+
     // initial quote to get final amount
     let quoteResponse = await quote({
       fromChainId: chainId,
@@ -165,29 +168,25 @@ export class WidoCompoundSdk {
       toChainId: chainId,
       toToken: toAsset.address,
       amount: amount.toString(),
+      user: providerContractAddress,
       providers: [Providers.ZeroEx],
     });
 
-    // select best provider for this swap
-    const provider = await this.getBestProvider(
-      chainId,
+    if (!this.signer.provider) {
+      throw new Error("Signer without provider");
+    }
+    const aaveProvider = new Aave(
+      providerContractAddress,
       toAsset.address,
-      BigNumber.from(quoteResponse.toTokenAmount)
-    );
-    if (!provider) {
+      BigNumber.from(quoteResponse.toTokenAmount),
+      this.signer.provider
+    )
+
+    // make sure the provider can be used
+    const aaveCanBeUsed = await aaveProvider.canBeUsed();
+    if (!aaveCanBeUsed) {
       throw new Error("There is no loan provider to enable this swap");
     }
-
-    // quote Wido API for complete route
-    quoteResponse = await quote({
-      fromChainId: chainId,
-      fromToken: fromAsset.address,
-      toChainId: chainId,
-      toToken: toAsset.address,
-      amount: amount.toString(),
-      user: widoCollateralSwapAddress[chainId][provider.id()],
-      providers: [Providers.ZeroEx],
-    });
 
     // fetch Wido Token Manager address
     const tokenManager = await getWidoSpender({
@@ -209,7 +208,7 @@ export class WidoCompoundSdk {
     // compute fees
     const wido_fee_bps = quoteResponse.feeBps ?? 0;
     const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
-    const providerFee = formatNumber(await provider.computeFee(), toAsset.decimals);
+    const providerFee = formatNumber(await aaveProvider.computeFee(), toAsset.decimals);
     const usdFees = await this.getUsdFees(
       fromAsset, widoFee,
       toAsset, providerFee,
@@ -219,7 +218,7 @@ export class WidoCompoundSdk {
     // construct & return quote
     return {
       isSupported: supported,
-      provider: provider.id(),
+      provider: aaveProvider.id(),
       to: quoteResponse.to,
       data: quoteResponse.data,
       tokenManager: tokenManager,
@@ -299,6 +298,7 @@ export class WidoCompoundSdk {
    * @param amount
    * @private
    */
+  // @ts-ignore
   private async getBestProvider(chainId: number, asset: string, amount: BigNumber) {
     if (!this.signer.provider) {
       throw new Error("Signer without provider");
