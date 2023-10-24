@@ -15,6 +15,7 @@ interface QuoteResponse {
   price: string
   toTokenAmount: string
   guaranteedPrice: string
+  value: string
 }
 
 export class ZeroXApiClient {

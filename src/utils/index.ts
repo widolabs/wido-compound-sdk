@@ -25,7 +25,7 @@ export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, stri
   },
   [ARBITRUM_ID]: {
     [LoanProvider.Equalizer]: "",
-    [LoanProvider.Aave]: "",
+    [LoanProvider.Aave]: "0xCd5Cc56811676296A75f9582C2eA037D564a72CF",
   }
 }
 
