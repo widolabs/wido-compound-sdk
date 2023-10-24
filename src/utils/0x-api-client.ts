@@ -23,7 +23,7 @@ export class ZeroXApiClient {
   private static readonly API_KEY = ""
   private static readonly WIDO_FEE_RECIPIENT =
     "0x5EF7F250f74d4F11A68054AE4e150705474a6D4a"
-  static readonly WIDO_FEE_BPS = "3"
+  static readonly WIDO_FEE_BPS = "30"
   private static readonly WIDO_FEE = "0.003"
   private static readonly API_URL: Record<number, string> = {
     [MAINNET_ID]: "https://api.0x.org",
