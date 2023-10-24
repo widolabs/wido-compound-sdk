@@ -12,14 +12,15 @@ import {
   getCometAddress,
   getDeploymentDetails,
   pickAsset,
-  widoCollateralSwapAddress
+  widoCollateralSwapAddress,
+  widoTokenManager
 } from './utils';
-import { getWidoSpender, quote, Providers } from 'wido';
 import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
 import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
 import { Aave } from './providers/aave';
+import { ZeroXApiClient } from "./utils/0x-api-client"
 
 export class WidoCompoundSdk {
   private readonly comet: string;
@@ -162,15 +163,17 @@ export class WidoCompoundSdk {
     const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave];
 
     // initial quote to get final amount
-    let quoteResponse = await quote({
-      fromChainId: chainId,
-      fromToken: fromAsset.address,
-      toChainId: chainId,
-      toToken: toAsset.address,
-      amount: amount.toString(),
-      user: providerContractAddress,
-      providers: [Providers.ZeroEx],
-    });
+    const quoteResponse = await ZeroXApiClient.quote({
+      chainId,
+      sellToken: fromAsset.address,
+      buyToken: toAsset.address,
+      sellAmount: amount.toString(),
+      takerAddress: providerContractAddress,
+    })
+
+    const minToTokenAmount = BigNumber.from(amount)
+      .mul(BigNumber.from(quoteResponse.guaranteedPrice))
+      .toString()
 
     if (!this.signer.provider) {
       throw new Error("Signer without provider");
@@ -188,25 +191,18 @@ export class WidoCompoundSdk {
       throw new Error("There is no loan provider to enable this swap");
     }
 
-    // fetch Wido Token Manager address
-    const tokenManager = await getWidoSpender({
-      chainId: chainId,
-      fromToken: fromAsset.address,
-      toChainId: chainId,
-      toToken: toAsset.address
-    })
+    const tokenManager = widoTokenManager[chainId]
 
     // check values and set defaults
-    const supported = quoteResponse.isSupported;
-    const toAmount = supported && quoteResponse.toTokenAmount
+    const toAmount = quoteResponse.toTokenAmount
       ? quoteResponse.toTokenAmount
       : "0";
-    const minToAmount = supported && quoteResponse.minToTokenAmount
-      ? quoteResponse.minToTokenAmount
+    const minToAmount = minToTokenAmount
+      ? minToTokenAmount
       : "0";
 
     // compute fees
-    const wido_fee_bps = quoteResponse.feeBps ?? 0;
+    const wido_fee_bps = ZeroXApiClient.WIDO_FEE_BPS ?? 0;
     const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
     const providerFee = formatNumber(await aaveProvider.computeFee(), toAsset.decimals);
     const usdFees = await this.getUsdFees(
@@ -217,7 +213,7 @@ export class WidoCompoundSdk {
 
     // construct & return quote
     return {
-      isSupported: supported,
+      isSupported: true,
       provider: aaveProvider.id(),
       to: quoteResponse.to,
       data: quoteResponse.data,
@@ -272,20 +268,12 @@ export class WidoCompoundSdk {
       revoke: revokeSignature
     }
 
-    // build Wido swap struct
-    const widoSwap = {
-      router: swapQuote.to,
-      tokenManager: swapQuote.tokenManager,
-      callData: swapQuote.data,
-    }
-
     // invoke Wido contract
     const tx = await widoCollateralSwapContract.functions.swapCollateral(
       existingCollateral,
       finalCollateral,
       sigs,
-      widoSwap,
-      cometAddress
+      swapQuote.data
     );
 
     return tx.hash;

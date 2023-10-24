@@ -3,9 +3,9 @@ import { Deployment, UserAsset, UserAssets } from '../types';
 import { LoanProvider } from '../providers/loanProvider';
 import { BigNumber } from 'ethers';
 
-const MAINNET_ID = 1;
-const POLYGON_ID = 137;
-const ARBITRUM_ID = 42161;
+export const MAINNET_ID = 1;
+export const POLYGON_ID = 137;
+export const ARBITRUM_ID = 42161;
 
 const keyToId = {
   mainnet: MAINNET_ID,
@@ -13,19 +13,26 @@ const keyToId = {
   arbitrum: ARBITRUM_ID,
 }
 
+// TODO: add LoanProvider addresses
 export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, string>> = {
   [MAINNET_ID]: {
-    [LoanProvider.Equalizer]: "0x2F43AFe8E9a5Ddd90D7B16e1798879CD35D46A2F",
-    [LoanProvider.Aave]: "0xaAA9f2FeE419977804eBD06F6E121f76FbcE8498",
+    [LoanProvider.Equalizer]: "",
+    [LoanProvider.Aave]: "",
   },
   [POLYGON_ID]: {
-    [LoanProvider.Equalizer]: "0xA2e08590f6f0ed44a65361deFcE090C00e8e6e10",
-    [LoanProvider.Aave]: "0x17000CdCCCFf2D0B2d8958BA40c751Fa9b4BE089",
+    [LoanProvider.Equalizer]: "",
+    [LoanProvider.Aave]: "0xCd5Cc56811676296A75f9582C2eA037D564a72CF",
   },
   [ARBITRUM_ID]: {
     [LoanProvider.Equalizer]: "",
-    [LoanProvider.Aave]: "0x74436167012475749168f33324e84990C8013647",
+    [LoanProvider.Aave]: "",
   }
+}
+
+export const widoTokenManager: Record<number, string> = {
+  [MAINNET_ID]: "0xF2F02200aEd0028fbB9F183420D3fE6dFd2d3EcD",
+  [POLYGON_ID]: "0x4eedfb447a7a0bec51145590c63c1b751e8c745c",
+  [ARBITRUM_ID]: "0x179b7f6178862b33429f515b532d6cd64f61eaeb",
 }
 
 /**
