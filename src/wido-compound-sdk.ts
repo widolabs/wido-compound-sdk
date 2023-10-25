@@ -171,9 +171,10 @@ export class WidoCompoundSdk {
       takerAddress: providerContractAddress,
     })
 
-    const minToTokenAmount = BigNumber.from(amount)
+    const minToAmount = BigNumber.from(amount)
       .mul(BigNumber.from(quoteResponse.guaranteedPrice))
       .toString()
+    if (!minToAmount) throw new Error('minToAmount field is not present')
 
     if (!this.signer.provider) {
       throw new Error("Signer without provider");
@@ -197,9 +198,6 @@ export class WidoCompoundSdk {
     const toAmount = quoteResponse.toTokenAmount
       ? quoteResponse.toTokenAmount
       : "0";
-    const minToAmount = minToTokenAmount
-      ? minToTokenAmount
-      : "0";
 
     // compute fees
     const wido_fee_bps = ZeroXApiClient.WIDO_FEE_BPS ?? 0;
@@ -215,9 +213,7 @@ export class WidoCompoundSdk {
     return {
       isSupported: true,
       provider: aaveProvider.id(),
-      to: quoteResponse.to,
       data: quoteResponse.data,
-      tokenManager: tokenManager,
       fromCollateral: fromAsset.address,
       fromCollateralAmount: amount.toString(),
       toCollateral: toAsset.address,
