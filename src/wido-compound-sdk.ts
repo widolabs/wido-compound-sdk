@@ -20,6 +20,7 @@ import { LoanProvider } from './providers/loanProvider';
 import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
 import { Aave } from './providers/aave';
 import { ZeroExApiClient } from "./utils/0x-api-client"
+import { generateExecuteOrderCalldata } from './utils/generate-execute-order-calldata';
 
 export class WidoCompoundSdk {
   private readonly comet: string;
@@ -209,11 +210,26 @@ export class WidoCompoundSdk {
       chainId
     );
 
+    const executeOrderCalldata = generateExecuteOrderCalldata({
+      fromToken: fromAsset.address,
+      toToken: toAsset.address,
+      fromTokenAmount: amount.toString(),
+      minOutputAmount: minToAmount,
+      userAddress: providerContractAddress,
+      nonce: 0,
+      expiration: 0,
+      targetAddress: quoteResponse.to,
+      data: quoteResponse.data,
+      amountIndex: -1,
+      feeBps: '0',
+      partnerAddress: '0x0000000000000000000000000000000000000000',
+    })
+
     // construct & return quote
     return {
       isSupported: true,
       provider: aaveProvider.id(),
-      data: quoteResponse.data,
+      data: executeOrderCalldata,
       fromCollateral: fromAsset.address,
       fromCollateralAmount: amount.toString(),
       toCollateral: toAsset.address,
