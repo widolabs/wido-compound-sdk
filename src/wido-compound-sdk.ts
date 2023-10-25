@@ -16,7 +16,6 @@ import {
   widoTokenManager
 } from './utils';
 import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
-import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
 import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
 import { Aave } from './providers/aave';
@@ -160,7 +159,7 @@ export class WidoCompoundSdk {
       throw new Error("From amount bigger than balance");
     }
 
-    const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave];
+    const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave][this.comet];
 
     // initial quote to get final amount
     const quoteResponse = await ZeroXApiClient.quote({
@@ -191,8 +190,6 @@ export class WidoCompoundSdk {
     if (!aaveCanBeUsed) {
       throw new Error("There is no loan provider to enable this swap");
     }
-
-    const tokenManager = widoTokenManager[chainId]
 
     // check values and set defaults
     const toAmount = quoteResponse.toTokenAmount
@@ -273,22 +270,6 @@ export class WidoCompoundSdk {
     );
 
     return tx.hash;
-  }
-
-  /**
-   * Find and return the best provider for the current asset/amount
-   * @param chainId
-   * @param asset
-   * @param amount
-   * @private
-   */
-  // @ts-ignore
-  private async getBestProvider(chainId: number, asset: string, amount: BigNumber) {
-    if (!this.signer.provider) {
-      throw new Error("Signer without provider");
-    }
-    const providers = new LoanProviders(chainId, asset, amount, this.signer.provider);
-    return providers.getBest();
   }
 
   /**
@@ -638,7 +619,7 @@ export class WidoCompoundSdk {
     if (!(chainId in widoCollateralSwapAddress)) {
       throw new Error(`WidoCollateralSwap not deployed on chain ${chainId}`);
     }
-    const address = widoCollateralSwapAddress[chainId][provider];
+    const address = widoCollateralSwapAddress[chainId][provider][this.comet];
     return new Contract(address, IWidoCollateralSwap_ABI, this.signer);
   }
 

@@ -13,19 +13,25 @@ const keyToId = {
   arbitrum: ARBITRUM_ID,
 }
 
-// TODO: add LoanProvider addresses
-export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, string>> = {
+export const widoCollateralSwapAddress: Record<number, Record<LoanProvider, Record<string, string>>> = {
   [MAINNET_ID]: {
-    [LoanProvider.Equalizer]: "",
-    [LoanProvider.Aave]: "",
+    [LoanProvider.Equalizer]: {},
+    [LoanProvider.Aave]: {
+      mainnet_usdc: "0x453C4F4A69B3F8B488d72965178DC07701f24131",
+      mainnet_weth: "0x2b7Adf056f8bE98F5EBd592fce1D79A83a9e1156",
+    },
   },
   [POLYGON_ID]: {
-    [LoanProvider.Equalizer]: "",
-    [LoanProvider.Aave]: "0xCd5Cc56811676296A75f9582C2eA037D564a72CF",
+    [LoanProvider.Equalizer]: {},
+    [LoanProvider.Aave]: {
+      polygon_usdc: "0xCd5Cc56811676296A75f9582C2eA037D564a72CF",
+    },
   },
   [ARBITRUM_ID]: {
-    [LoanProvider.Equalizer]: "",
-    [LoanProvider.Aave]: "0xCd5Cc56811676296A75f9582C2eA037D564a72CF",
+    [LoanProvider.Equalizer]: {},
+    [LoanProvider.Aave]: {
+      arbitrum_usdc: "0xCd5Cc56811676296A75f9582C2eA037D564a72CF",
+    }
   }
 }
 
