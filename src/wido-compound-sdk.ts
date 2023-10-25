@@ -19,18 +19,20 @@ import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets }
 import { LoanProvider } from './providers/loanProvider';
 import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
 import { Aave } from './providers/aave';
-import { ZeroXApiClient } from "./utils/0x-api-client"
+import { ZeroExApiClient } from "./utils/0x-api-client"
 
 export class WidoCompoundSdk {
   private readonly comet: string;
   private readonly signer: Signer & TypedDataSigner;
   private readonly priceFetcher: CoingeckoTokensPriceFetcher;
+  private readonly zeroExApiKey: string;
 
-  constructor(signer: Signer & TypedDataSigner, comet: string) {
+  constructor(signer: Signer & TypedDataSigner, comet: string, zeroExApiKey: string) {
     WidoCompoundSdk.validateComet(comet);
     this.signer = signer;
     this.comet = comet;
     this.priceFetcher = new CoingeckoTokensPriceFetcher();
+    this.zeroExApiKey = zeroExApiKey;
   }
 
   /**
@@ -162,12 +164,13 @@ export class WidoCompoundSdk {
     const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave][this.comet];
 
     // initial quote to get final amount
-    const quoteResponse = await ZeroXApiClient.quote({
+    const quoteResponse = await ZeroExApiClient.quote({
       chainId,
       sellToken: fromAsset.address,
       buyToken: toAsset.address,
       sellAmount: amount.toString(),
       takerAddress: providerContractAddress,
+      apiKey: this.zeroExApiKey,
     })
 
     const minToAmount = BigNumber.from(amount)
@@ -197,7 +200,7 @@ export class WidoCompoundSdk {
       : "0";
 
     // compute fees
-    const wido_fee_bps = ZeroXApiClient.WIDO_FEE_BPS ?? 0;
+    const wido_fee_bps = ZeroExApiClient.WIDO_FEE_BPS ?? 0;
     const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
     const providerFee = formatNumber(await aaveProvider.computeFee(), toAsset.decimals);
     const usdFees = await this.getUsdFees(

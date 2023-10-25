@@ -1,4 +1,3 @@
-import { BigNumber } from "ethers"
 import { MAINNET_ID, POLYGON_ID, ARBITRUM_ID } from "."
 
 interface QuoteParams {
@@ -7,6 +6,7 @@ interface QuoteParams {
   buyToken: string
   sellAmount: string
   takerAddress: string
+  apiKey: string
 }
 
 interface QuoteResponse {
@@ -18,9 +18,7 @@ interface QuoteResponse {
   value: string
 }
 
-export class ZeroXApiClient {
-  // TODO: add API key
-  private static readonly API_KEY = ""
+export class ZeroExApiClient {
   private static readonly WIDO_FEE_RECIPIENT =
     "0x5EF7F250f74d4F11A68054AE4e150705474a6D4a"
   static readonly WIDO_FEE_BPS = "30"
@@ -37,19 +35,20 @@ export class ZeroXApiClient {
     buyToken,
     sellAmount,
     takerAddress,
+    apiKey,
   }: QuoteParams) {
     const quoteParams = {
       sellToken,
       buyToken,
       sellAmount,
       takerAddress,
-      feeRecipient: ZeroXApiClient.WIDO_FEE_RECIPIENT,
-      buyTokenPercentageFee: ZeroXApiClient.WIDO_FEE,
+      feeRecipient: ZeroExApiClient.WIDO_FEE_RECIPIENT,
+      buyTokenPercentageFee: ZeroExApiClient.WIDO_FEE,
     }
-    const headers = { "0x-api-key": ZeroXApiClient.API_KEY }
+    const headers = { "0x-api-key": apiKey }
 
     return await fetch(
-      `${ZeroXApiClient.API_URL[chainId]}/swap/v1/quote?${new URLSearchParams(
+      `${ZeroExApiClient.API_URL[chainId]}/swap/v1/quote?${new URLSearchParams(
         quoteParams
       ).toString()}`,
       { headers }
@@ -59,9 +58,7 @@ export class ZeroXApiClient {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
         if (response.status.toString().slice(0, 1) !== "2") {
-          throw new Error(
-            `got error from 0x. status code: ${response.status}`
-          );
+          throw new Error(`got error from 0x. status code: ${response.status}`)
         }
         return response.text()
       })

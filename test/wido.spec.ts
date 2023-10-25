@@ -5,6 +5,8 @@ import { approveERC20, approveWeth, getCometContract, getERC20, getWallet, getWe
 import { BigNumber } from 'ethers';
 import { cometConstants } from '@compound-finance/compound-js/dist/nodejs/constants';
 
+const ZEROEX_API_KEY = '';
+
 describe("CollateralSwap SDK", () => {
 
   it("should have named exports", () => {
@@ -61,7 +63,7 @@ describe("CollateralSwap SDK", () => {
 
   it("should return known supported collaterals", async () => {
     const comet = "mainnet_usdc";
-    const wido = new WidoCompoundSdk(getWallet(comet), comet)
+    const wido = new WidoCompoundSdk(getWallet(comet), comet, ZEROEX_API_KEY)
     const supportedAssets = await wido.getSupportedCollaterals();
 
     expect(supportedAssets.length).toBeGreaterThanOrEqual(5);
@@ -97,7 +99,7 @@ describe("CollateralSwap SDK", () => {
 
   it("should return user collaterals", async () => {
     const comet = "mainnet_usdc";
-    const wido = new WidoCompoundSdk(getWallet(comet), comet)
+    const wido = new WidoCompoundSdk(getWallet(comet), comet, ZEROEX_API_KEY)
     const userCollaterals = await wido.getUserCollaterals();
 
     expect(userCollaterals.length).toBeGreaterThanOrEqual(5);
@@ -109,7 +111,7 @@ describe("CollateralSwap SDK", () => {
 
   it("should quote a swap", async () => {
     const comet = "mainnet_usdc";
-    const wido = new WidoCompoundSdk(getWallet(comet), comet);
+    const wido = new WidoCompoundSdk(getWallet(comet), comet, ZEROEX_API_KEY);
     const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     const comp = "0xc00e94Cb662C3520282E6f5717214004A7f26888";
     const swapQuote = await wido.getCollateralSwapRoute("WETH", "COMP", BigNumber.from(0));
@@ -121,7 +123,7 @@ describe("CollateralSwap SDK", () => {
 
   it("should have an initial empty position", async () => {
     const comet = "mainnet_usdc";
-    const wido = new WidoCompoundSdk(getWallet(comet), comet);
+    const wido = new WidoCompoundSdk(getWallet(comet), comet, ZEROEX_API_KEY);
 
     const position = await wido.getUserCurrentPosition()
 
@@ -135,7 +137,7 @@ describe("CollateralSwap SDK", () => {
     // Arrange
     const comet = "mainnet_usdc";
     const signer = getWallet(comet);
-    const wido = new WidoCompoundSdk(signer, comet);
+    const wido = new WidoCompoundSdk(signer, comet, ZEROEX_API_KEY);
     const cometAddress = cometConstants.address[comet].Comet;
 
     // prepare collateral
@@ -163,7 +165,7 @@ describe("CollateralSwap SDK", () => {
   it("should give a predicted position", async () => {
     const comet = "mainnet_usdc";
     const signer = getWallet(comet);
-    const wido = new WidoCompoundSdk(signer, comet);
+    const wido = new WidoCompoundSdk(signer, comet, ZEROEX_API_KEY);
     const cometAddress = cometConstants.address[comet].Comet;
 
     // prepare collateral
@@ -196,7 +198,7 @@ describe("CollateralSwap SDK", () => {
   it("should execute a collateral swap", async () => {
     const comet = "mainnet_usdc";
     const signer = getWallet(comet);
-    const wido = new WidoCompoundSdk(signer, comet);
+    const wido = new WidoCompoundSdk(signer, comet, ZEROEX_API_KEY);
     const cometAddress = cometConstants.address[comet].Comet;
     const loanAmount = BigNumber.from(500 * 10 ** 6);
 
