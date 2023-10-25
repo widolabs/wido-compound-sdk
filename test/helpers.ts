@@ -1,7 +1,6 @@
 import { BigNumber, Contract, ethers, Wallet } from 'ethers';
-import { getWidoSpender, quote } from 'wido';
 import { getDeploymentDetails, widoTokenManager } from '../src/utils';
-import { ZeroXApiClient } from '../src/utils/0x-api-client';
+import { ZeroExApiClient } from '../src/utils/0x-api-client';
 
 export const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 export const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599";
@@ -89,12 +88,13 @@ export async function getERC20(asset: string, signer: Wallet) {
   await getWeth(amount, signer);
   const chainId = await signer.getChainId()
 
-  const quoteResponse = await ZeroXApiClient.quote({
+  const quoteResponse = await ZeroExApiClient.quote({
     chainId,
     sellToken: WETH,
     buyToken: asset,
     sellAmount: amount.toString(),
     takerAddress: signer.address,
+    apiKey: ''
   })
   const tokenManager = widoTokenManager[chainId]
 

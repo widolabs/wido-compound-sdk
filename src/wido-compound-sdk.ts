@@ -12,8 +12,7 @@ import {
   getCometAddress,
   getDeploymentDetails,
   pickAsset,
-  widoCollateralSwapAddress,
-  widoTokenManager
+  widoCollateralSwapAddress
 } from './utils';
 import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
 import { LoanProvider } from './providers/loanProvider';
