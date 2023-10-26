@@ -58,7 +58,7 @@ export function generateExecuteOrderCalldata({
 
   const values = [order, route, ethers.BigNumber.from(feeBps), partnerAddress]
 
-  const contract = new ethers.Contract("WidoRouter", WIDO_ROUTER_ABI)
+  const contract = new ethers.Contract("0x0000000000000000000000000000000000000000", WIDO_ROUTER_ABI)
 
   return contract.interface.encodeFunctionData("executeOrder", values)
 }

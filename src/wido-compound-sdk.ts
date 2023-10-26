@@ -174,8 +174,7 @@ export class WidoCompoundSdk {
     })
 
     const minToAmount = BigNumber.from(amount)
-      .mul(BigNumber.from(quoteResponse.guaranteedPrice))
-      .toString()
+    .mul(ethers.utils.parseUnits(quoteResponse.guaranteedPrice, 18)).div(18).toString()
     if (!minToAmount) throw new Error('minToAmount field is not present')
 
     if (!this.signer.provider) {
@@ -184,7 +183,7 @@ export class WidoCompoundSdk {
     const aaveProvider = new Aave(
       providerContractAddress,
       toAsset.address,
-      BigNumber.from(quoteResponse.toTokenAmount),
+      BigNumber.from(quoteResponse.buyAmount),
       this.signer.provider
     )
 
@@ -195,8 +194,8 @@ export class WidoCompoundSdk {
     }
 
     // check values and set defaults
-    const toAmount = quoteResponse.toTokenAmount
-      ? quoteResponse.toTokenAmount
+    const toAmount = quoteResponse.buyAmount
+      ? quoteResponse.buyAmount
       : "0";
 
     // compute fees

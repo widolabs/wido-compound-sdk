@@ -13,7 +13,7 @@ interface QuoteResponse {
   to: string
   data: string
   price: string
-  toTokenAmount: string
+  buyAmount: string
   guaranteedPrice: string
   value: string
 }
@@ -44,6 +44,7 @@ export class ZeroExApiClient {
       takerAddress,
       feeRecipient: ZeroExApiClient.WIDO_FEE_RECIPIENT,
       buyTokenPercentageFee: ZeroExApiClient.WIDO_FEE,
+      skipValidation: "true",
     }
     const headers = { "0x-api-key": apiKey }
 
