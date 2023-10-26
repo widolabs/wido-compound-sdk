@@ -174,7 +174,7 @@ export class WidoCompoundSdk {
     })
 
     const minToAmount = BigNumber.from(amount)
-    .mul(ethers.utils.parseUnits(quoteResponse.guaranteedPrice, 18)).div(18).toString()
+    .mul(ethers.utils.parseUnits(quoteResponse.guaranteedPrice, 18)).div(ethers.BigNumber.from(10).pow(18)).toString()
     if (!minToAmount) throw new Error('minToAmount field is not present')
 
     if (!this.signer.provider) {
@@ -200,12 +200,10 @@ export class WidoCompoundSdk {
 
     // compute fees
     const wido_fee_bps = ZeroExApiClient.WIDO_FEE_BPS ?? 0;
-    const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
+    const widoFee = formatNumber(BigNumber.from(toAmount).mul(wido_fee_bps).div(10000), toAsset.decimals);
     const providerFee = formatNumber(await aaveProvider.computeFee(), toAsset.decimals);
     const usdFees = await this.getUsdFees(
-      fromAsset, widoFee,
-      toAsset, providerFee,
-      chainId
+      toAsset, widoFee, providerFee, chainId
     );
 
     const executeOrderCalldata = generateExecuteOrderCalldata({
@@ -578,9 +576,8 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getUsdFees(
-    fromAsset: Asset,
-    widoFee: number,
     toAsset: Asset,
+    widoFee: number,
     providerFee: number,
     chainId: number
   ): Promise<{
@@ -588,13 +585,11 @@ export class WidoCompoundSdk {
     providerFee: number
   }> {
     const prices = await this.priceFetcher.fetch([
-      fromAsset.address,
       toAsset.address
     ], chainId)
-    const fromAssetPrice = fromAsset.address.toLowerCase() in prices ? prices[fromAsset.address.toLowerCase()].usd : 0;
     const toAssetPrice = toAsset.address.toLowerCase() in prices ? prices[toAsset.address.toLowerCase()].usd : 0;
     return {
-      widoFee: widoFee * fromAssetPrice,
+      widoFee: widoFee * toAssetPrice,
       providerFee: providerFee * toAssetPrice
     }
   }
