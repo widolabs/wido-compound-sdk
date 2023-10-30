@@ -14,23 +14,26 @@ import {
   pickAsset,
   widoCollateralSwapAddress
 } from './utils';
-import { getWidoSpender, quote, Providers } from 'wido';
 import { Asset, Assets, CollateralSwapRoute, Deployments, Position, UserAssets } from './types';
-import { LoanProviders } from './providers/loanProviders';
 import { LoanProvider } from './providers/loanProvider';
 import { CoingeckoTokensPriceFetcher } from './utils/coingecko-tokens-price-fetcher';
 import { Aave } from './providers/aave';
+import { ZeroExApiClient } from "./utils/0x-api-client"
+import { generateExecuteOrderCalldata } from './utils/generate-execute-order-calldata';
+import promiseRetry from 'promise-retry'
 
 export class WidoCompoundSdk {
   private readonly comet: string;
   private readonly signer: Signer & TypedDataSigner;
   private readonly priceFetcher: CoingeckoTokensPriceFetcher;
+  private readonly zeroExApiKey: string;
 
-  constructor(signer: Signer & TypedDataSigner, comet: string) {
+  constructor(signer: Signer & TypedDataSigner, comet: string, zeroExApiKey: string) {
     WidoCompoundSdk.validateComet(comet);
     this.signer = signer;
     this.comet = comet;
     this.priceFetcher = new CoingeckoTokensPriceFetcher();
+    this.zeroExApiKey = zeroExApiKey;
   }
 
   /**
@@ -69,29 +72,34 @@ export class WidoCompoundSdk {
    * Returns a list of user owned collaterals on the given Comet
    */
   public async getUserCollaterals(): Promise<UserAssets> {
-    const cometContract = await this.getCometContract();
+    const cometContract = await this.getCometContract()
 
     const collaterals = await this.getSupportedCollaterals()
-    const userAddress = this.getUserAddress();
-
-    const calls = collaterals.map(collateral => {
-      return cometContract.callStatic.userCollateral(userAddress, collateral.address);
-    })
-
-    return await Promise.all(calls)
-      .then(results => {
-        return results.map((result, index) => {
-          return {
-            name: collaterals[index].name,
-            address: collaterals[index].address,
-            decimals: collaterals[index].decimals,
-            balance: result[0]
-          }
+    const userAddress = this.getUserAddress()
+  
+    return await promiseRetry(function (retry) {
+      const calls = collaterals.map((collateral) => {
+        return cometContract.callStatic.userCollateral(
+          userAddress,
+          collateral.address
+        )
+      })
+  
+      return Promise.all(calls)
+        .then((results) => {
+          return results.map((result, index) => {
+            return {
+              name: collaterals[index].name,
+              address: collaterals[index].address,
+              decimals: collaterals[index].decimals,
+              balance: result[0],
+            }
+          })
         })
-      })
-      .catch(() => {
-        throw new Error("Failed to fetch collaterals")
-      })
+        .catch(retry)
+    }).catch(() => {
+      throw new Error("Failed to fetch collaterals")
+    })
   }
 
   /**
@@ -159,18 +167,21 @@ export class WidoCompoundSdk {
       throw new Error("From amount bigger than balance");
     }
 
-    const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave];
+    const providerContractAddress = widoCollateralSwapAddress[chainId][LoanProvider.Aave][this.comet];
 
     // initial quote to get final amount
-    let quoteResponse = await quote({
-      fromChainId: chainId,
-      fromToken: fromAsset.address,
-      toChainId: chainId,
-      toToken: toAsset.address,
-      amount: amount.toString(),
-      user: providerContractAddress,
-      providers: [Providers.ZeroEx],
-    });
+    const quoteResponse = await ZeroExApiClient.quote({
+      chainId,
+      sellToken: fromAsset.address,
+      buyToken: toAsset.address,
+      sellAmount: amount.toString(),
+      takerAddress: providerContractAddress,
+      apiKey: this.zeroExApiKey,
+    })
+
+    const minToAmount = BigNumber.from(amount)
+    .mul(ethers.utils.parseUnits(quoteResponse.guaranteedPrice, 18)).div(ethers.BigNumber.from(10).pow(18)).toString()
+    if (!minToAmount) throw new Error('minToAmount field is not present')
 
     if (!this.signer.provider) {
       throw new Error("Signer without provider");
@@ -178,7 +189,7 @@ export class WidoCompoundSdk {
     const aaveProvider = new Aave(
       providerContractAddress,
       toAsset.address,
-      BigNumber.from(quoteResponse.toTokenAmount),
+      BigNumber.from(quoteResponse.buyAmount),
       this.signer.provider
     )
 
@@ -188,40 +199,39 @@ export class WidoCompoundSdk {
       throw new Error("There is no loan provider to enable this swap");
     }
 
-    // fetch Wido Token Manager address
-    const tokenManager = await getWidoSpender({
-      chainId: chainId,
-      fromToken: fromAsset.address,
-      toChainId: chainId,
-      toToken: toAsset.address
-    })
-
     // check values and set defaults
-    const supported = quoteResponse.isSupported;
-    const toAmount = supported && quoteResponse.toTokenAmount
-      ? quoteResponse.toTokenAmount
-      : "0";
-    const minToAmount = supported && quoteResponse.minToTokenAmount
-      ? quoteResponse.minToTokenAmount
+    const toAmount = quoteResponse.buyAmount
+      ? quoteResponse.buyAmount
       : "0";
 
     // compute fees
-    const wido_fee_bps = quoteResponse.feeBps ?? 0;
-    const widoFee = formatNumber(amount.mul(wido_fee_bps).div(10000), fromAsset.decimals);
+    const wido_fee_bps = ZeroExApiClient.WIDO_FEE_BPS ?? 0;
+    const widoFee = formatNumber(BigNumber.from(toAmount).mul(wido_fee_bps).div(10000), toAsset.decimals);
     const providerFee = formatNumber(await aaveProvider.computeFee(), toAsset.decimals);
     const usdFees = await this.getUsdFees(
-      fromAsset, widoFee,
-      toAsset, providerFee,
-      chainId
+      toAsset, widoFee, providerFee, chainId
     );
+
+    const executeOrderCalldata = generateExecuteOrderCalldata({
+      fromToken: fromAsset.address,
+      toToken: toAsset.address,
+      fromTokenAmount: amount.toString(),
+      minOutputAmount: minToAmount,
+      userAddress: providerContractAddress,
+      nonce: 0,
+      expiration: 0,
+      targetAddress: quoteResponse.to,
+      data: quoteResponse.data,
+      amountIndex: -1,
+      feeBps: '0',
+      partnerAddress: '0x0000000000000000000000000000000000000000',
+    })
 
     // construct & return quote
     return {
-      isSupported: supported,
+      isSupported: true,
       provider: aaveProvider.id(),
-      to: quoteResponse.to,
-      data: quoteResponse.data,
-      tokenManager: tokenManager,
+      data: executeOrderCalldata,
       fromCollateral: fromAsset.address,
       fromCollateralAmount: amount.toString(),
       toCollateral: toAsset.address,
@@ -253,8 +263,8 @@ export class WidoCompoundSdk {
     const { allowSignature, revokeSignature } = await this.createSignatures(
       chainId,
       cometAddress,
-      widoCollateralSwapContract.address,
-    );
+      widoCollateralSwapContract.address
+    )
 
     // build collateral structs
     const existingCollateral = {
@@ -272,39 +282,15 @@ export class WidoCompoundSdk {
       revoke: revokeSignature
     }
 
-    // build Wido swap struct
-    const widoSwap = {
-      router: swapQuote.to,
-      tokenManager: swapQuote.tokenManager,
-      callData: swapQuote.data,
-    }
-
     // invoke Wido contract
     const tx = await widoCollateralSwapContract.functions.swapCollateral(
       existingCollateral,
       finalCollateral,
       sigs,
-      widoSwap,
-      cometAddress
-    );
+      swapQuote.data
+    )
 
     return tx.hash;
-  }
-
-  /**
-   * Find and return the best provider for the current asset/amount
-   * @param chainId
-   * @param asset
-   * @param amount
-   * @private
-   */
-  // @ts-ignore
-  private async getBestProvider(chainId: number, asset: string, amount: BigNumber) {
-    if (!this.signer.provider) {
-      throw new Error("Signer without provider");
-    }
-    const providers = new LoanProviders(chainId, asset, amount, this.signer.provider);
-    return providers.getBest();
   }
 
   /**
@@ -312,16 +298,20 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getAssetsInfo(cometContract: Contract): Promise<AssetInfo[]> {
-    const numAssets = await cometContract.callStatic.numAssets().catch(() => {
+    const numAssets = await promiseRetry(function (retry) {
+      return cometContract.callStatic.numAssets().catch(retry)
+    }).catch(() => {
       throw new Error("Failed to fetch numAssets")
-    });
-    return await Promise.all(
-      [...Array(numAssets).keys()]
-        .map(i => cometContract.callStatic.getAssetInfo(i))
-    )
-      .catch(() => {
-        throw new Error("Failed to fetch assets info")
-      });
+    })
+    return await promiseRetry(function (retry) {
+      return Promise.all(
+        [...Array(numAssets).keys()].map((i) =>
+          cometContract.callStatic.getAssetInfo(i)
+        )
+      ).catch(retry)
+    }).catch(() => {
+      throw new Error("Failed to fetch assets info")
+    })
   }
 
   /**
@@ -329,22 +319,22 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getDecimals(infos: AssetInfo[]): Promise<number[]> {
-    if (!this.signer.provider) {
-      throw new Error("Signer without provider");
-    }
-    const calls = [];
-    const provider = new providers.MulticallProvider(this.signer.provider);
-    for (let i = 0; i < infos.length; i++) {
-      const contract = new Contract(
-        infos[i].asset,
-        [
-          "function decimals() external returns(uint8)"
-        ],
-        provider
-      );
-      calls.push(contract.callStatic.decimals());
-    }
-    return await Promise.all(calls).catch(() => {
+    return await promiseRetry((retry) => {
+      if (!this.signer.provider) {
+        throw new Error("Signer without provider")
+      }
+      const calls = []
+      const provider = new providers.MulticallProvider(this.signer.provider)
+      for (let i = 0; i < infos.length; i++) {
+        const contract = new Contract(
+          infos[i].asset,
+          ["function decimals() external returns(uint8)"],
+          provider
+        )
+        calls.push(contract.callStatic.decimals())
+      }
+      return Promise.all(calls).catch(retry)
+    }).catch(() => {
       throw new Error("Failed to fetch decimals")
     })
   }
@@ -357,14 +347,30 @@ export class WidoCompoundSdk {
     basePrice: number,
     baseDecimals: number,
   }> {
-    const baseTokenPriceFeed = await cometContract.callStatic.baseTokenPriceFeed();
-    const basePrice = +(await cometContract.callStatic.getPrice(baseTokenPriceFeed)).toString() / 1e8;
-    const baseDecimals = +(await cometContract.callStatic.decimals()).toString();
-
-    return {
-      basePrice,
-      baseDecimals,
-    }
+    return await promiseRetry(async (retry) => {
+      const baseTokenPriceFeed = await cometContract.callStatic
+        .baseTokenPriceFeed()
+        .catch((e) => {
+          return retry(e)
+        })
+      const basePrice =
+        +(
+          await cometContract.callStatic.getPrice(baseTokenPriceFeed).catch((e) => {
+            return retry(e)
+          })
+        ).toString() / 1e8
+      const baseDecimals = +(
+        await cometContract.callStatic.decimals().catch((e) => {
+          return retry(e)
+        })
+      ).toString()
+      return {
+        basePrice,
+        baseDecimals,
+      }
+    }).catch(() => {
+      throw new Error("Failed to fetch base token details")
+    })
   }
 
   /**
@@ -382,23 +388,31 @@ export class WidoCompoundSdk {
     balances: BigNumber[]
     prices: BigNumber[]
   }> {
-    const promisesCollaterals = [];
-    const promisesPrices = [];
-    for (let i = 0; i < infos.length; i++) {
-      const { asset, priceFeed } = infos[i];
-      promisesCollaterals.push(cometContract.callStatic.collateralBalanceOf(userAddress, asset));
-      promisesPrices.push(cometContract.callStatic.getPrice(priceFeed));
-    }
-    const collateralBalances = await Promise.all(promisesCollaterals).catch(() => {
-      throw new Error("Failed to fetch collateral balances")
-    });
-    const collateralPrices = await Promise.all(promisesPrices).catch(() => {
-      throw new Error("Failed to fetch collateral prices")
-    });
-    return {
-      balances: collateralBalances,
-      prices: collateralPrices
-    }
+    return await promiseRetry(async (retry) => {
+      const promisesCollaterals = []
+      const promisesPrices = []
+      for (let i = 0; i < infos.length; i++) {
+        const { asset, priceFeed } = infos[i]
+        promisesCollaterals.push(
+          cometContract.callStatic.collateralBalanceOf(userAddress, asset)
+        )
+        promisesPrices.push(cometContract.callStatic.getPrice(priceFeed))
+      }
+      const collateralBalances = await Promise.all(promisesCollaterals).catch(
+        (e) => {
+          return retry(e)
+        }
+      )
+      const collateralPrices = await Promise.all(promisesPrices).catch((e) => {
+        return retry(e)
+      })
+      return {
+        balances: collateralBalances,
+        prices: collateralPrices,
+      }
+    }).catch(() => {
+      throw new Error("Failed to fetch collateral balances or prices")
+    })
   }
 
   /**
@@ -458,9 +472,22 @@ export class WidoCompoundSdk {
    * @private
    */
   private static async getBorrowedInBaseUnits(cometContract: Contract, userAddress: string): Promise<number> {
-    const { basePrice, baseDecimals } = await WidoCompoundSdk.getBaseTokenDetails(cometContract);
-    const borrowBalance = +(await cometContract.callStatic.borrowBalanceOf(userAddress)).toString();
-    return borrowBalance / Math.pow(10, baseDecimals) * basePrice;
+    return await promiseRetry(async (retry) => {
+      const { basePrice, baseDecimals } = await WidoCompoundSdk.getBaseTokenDetails(
+        cometContract
+      ).catch((e) => {
+        return retry(e)
+      })
+      const borrowBalance = +(
+        await cometContract.callStatic.borrowBalanceOf(userAddress).catch((e) => {
+          return retry(e)
+        })
+      ).toString()
+      return (borrowBalance / Math.pow(10, baseDecimals)) * basePrice
+    }).catch(() => {
+      throw new Error("Failed to fetch borrowed in baseUnits")
+    })
+    
   }
 
   /**
@@ -483,14 +510,15 @@ export class WidoCompoundSdk {
     const userAddress = await this.getUserAddress()
     const contract = await this.getCometContract()
 
-    const results = await Promise.all([
-      contract.callStatic.userNonce(userAddress),
-      contract.callStatic.name(),
-      contract.callStatic.version(),
-    ])
-      .catch(() => {
-        throw new Error("Failed to fetch signature details")
-      });
+    const results = await promiseRetry(async (retry) => {
+      return Promise.all([
+        contract.callStatic.userNonce(userAddress),
+        contract.callStatic.name(),
+        contract.callStatic.version(),
+      ]).catch(retry)
+    }).catch(() => {
+      throw new Error("Failed to fetch signature details")
+    })
 
     let nonce = +results[0];
     const name = results[1];
@@ -550,7 +578,7 @@ export class WidoCompoundSdk {
   ): Promise<Signature> {
     try {
       manager = ethers.utils.getAddress(manager);
-    } catch (e) {
+    } catch {
       throw Error('Compound Comet [createAllowSignature] | Argument `manager` must be a valid Ethereum address.');
     }
 
@@ -596,9 +624,8 @@ export class WidoCompoundSdk {
    * @private
    */
   private async getUsdFees(
-    fromAsset: Asset,
-    widoFee: number,
     toAsset: Asset,
+    widoFee: number,
     providerFee: number,
     chainId: number
   ): Promise<{
@@ -606,13 +633,11 @@ export class WidoCompoundSdk {
     providerFee: number
   }> {
     const prices = await this.priceFetcher.fetch([
-      fromAsset.address,
       toAsset.address
     ], chainId)
-    const fromAssetPrice = fromAsset.address.toLowerCase() in prices ? prices[fromAsset.address.toLowerCase()].usd : 0;
     const toAssetPrice = toAsset.address.toLowerCase() in prices ? prices[toAsset.address.toLowerCase()].usd : 0;
     return {
-      widoFee: widoFee * fromAssetPrice,
+      widoFee: widoFee * toAssetPrice,
       providerFee: providerFee * toAssetPrice
     }
   }
@@ -654,7 +679,7 @@ export class WidoCompoundSdk {
     if (!(chainId in widoCollateralSwapAddress)) {
       throw new Error(`WidoCollateralSwap not deployed on chain ${chainId}`);
     }
-    const address = widoCollateralSwapAddress[chainId][provider];
+    const address = widoCollateralSwapAddress[chainId][provider][this.comet];
     return new Contract(address, IWidoCollateralSwap_ABI, this.signer);
   }
 

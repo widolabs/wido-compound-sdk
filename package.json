@@ -1,7 +1,7 @@
 {
   "name": "@widolabs/collateral-swap-sdk",
   "license": "UNLICENSED",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -45,8 +45,7 @@
     "typescript": "^4.5.4",
     "vite": "^2.9.15",
     "vite-plugin-dts": "^2.3.0",
-    "vitest": "^0.24.3",
-    "wido": "^0.3.5"
+    "vitest": "^0.24.3"
   },
   "keywords": [
     "wido",
@@ -57,5 +56,9 @@
     "crypto",
     "sdk",
     "typescript"
-  ]
+  ],
+  "dependencies": {
+    "@types/promise-retry": "^1.1.5",
+    "promise-retry": "^2.0.1"
+  }
 }

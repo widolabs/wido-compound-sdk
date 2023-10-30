@@ -23,8 +23,6 @@ export interface CollateralSwapRoute {
   toCollateralAmount: string
   toCollateralMinAmount: string
   price?: string
-  tokenManager: string
-  to?: string
   data?: string
   fees: Fees
 }
