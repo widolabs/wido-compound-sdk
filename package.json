@@ -56,5 +56,9 @@
     "crypto",
     "sdk",
     "typescript"
-  ]
+  ],
+  "dependencies": {
+    "@types/promise-retry": "^1.1.5",
+    "promise-retry": "^2.0.1"
+  }
 }
